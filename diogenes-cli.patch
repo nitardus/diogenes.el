@@ -1,4 +1,5 @@
-31c31
+31c31,32
 < push @INC, '.';
 ---
-> BEGIN { push @INC, '.' }
+> use FindBin qw($Bin);
+> use lib $Bin;

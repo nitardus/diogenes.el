@@ -1,3 +1,4 @@
+(unless (boundp 'diogenes-cli-cmd) (warn "diogenes-cli-cmd is not set!"))
 (defun diogenes-completing-author-greek ()
   "Reads the name of a Greek author from the minibuffer and returns the corresponding TLG number"
 (substring (completing-read "Author: " '(""
@@ -2201,8 +2202,8 @@
 		(when (not (y-or-n-p "Search the whole TLG corpus? "))
 		  (diogenes-completing-author-greek))))
   (if author
-      (shell-command (format "diogenes-cli.pl -g -n %s '%s'" author query))
-    (shell-command (format "diogenes-cli.pl -g '%s'" query))))
+      (shell-command (format "%s -g -n %s '%s'" diogenes-cli-cmd author query))
+    (shell-command (format "%s -g '%s'" diogenes-cli-cmd query))))
 
 (defun diogenes-search-latin (query &optional author)
   "Searches for a phrase in the Greek TLG database using the diogenes command-line utility."
@@ -2211,55 +2212,49 @@
 		(when (not (y-or-n-p "Search the whole PHI corpus? "))
 		  (diogenes-completing-author-latin))))
   (if author
-      (shell-command (format "diogenes-cli.pl -l -n %s '%s'" author query))
-    (shell-command (format "diogenes-cli.pl -l '%s'" query))))
-
-(defun diogenes-search-aristotle
-    (query)
-  "Searches for a phrase in Aristotle using the diogenes command-line utility."
-  (interactive "sQuery: ")
-  (shell-command (format "diogenes-cli.pl -g -n 0086 '%s'" query)))
+      (shell-command (format "%s -l -n %s '%s'" diogenes-cli-cmd author query))
+    (shell-command (format "%s -l '%s'" diogenes-cli-cmd query))))
 
 (defun diogenes-search-greek-interactive
     (query)
   "Search interactvely the TLG database"
   (interactive "sQuery: ")
-  (make-comint "diogenes-search" "diogenes-cli.pl" nil "-gF" query)
+  (make-comint "diogenes-search" diogenes-cli-cmd nil "-gF" query)
   (switch-to-buffer "*diogenes-search*"))
 
 (defun diogenes-browse-greek
     (query)
   "Browse the TLG database"
   (interactive (list (diogenes-completing-author-greek)))
-  (make-comint "diogenes-browse" "diogenes-cli.pl" nil "-bg" "-n" query)
+  (make-comint "diogenes-browse" diogenes-cli-cmd nil "-bg" "-n" query)
   (switch-to-buffer "*diogenes-browse*"))
 
 (defun diogenes-dump-greek
     (query)
   "Dumps the whole of a greek TLG text"
   (interactive (list (diogenes-completing-author-greek)))
-  (make-comint "diogenes-browse" "diogenes-cli.pl" nil "-bg" "-c" "1000000" "-n" query)
+  (make-comint "diogenes-browse" diogenes-cli-cmd nil "-bg" "-c" "1000000" "-n" query)
   (switch-to-buffer "*diogenes-browse*"))
 
 (defun diogenes-browse-latin
     (query)
   "Browse the PHI database"
   (interactive (list (diogenes-completing-author-latin)))
-  (make-comint "diogenes-browse-latin" "diogenes-cli.pl" nil "-bl" "-n" query)
+  (make-comint "diogenes-browse-latin" diogenes-cli-cmd nil "-bl" "-n" query)
   (switch-to-buffer "*diogenes-browse-latin*"))
 
 (defun diogenes-search-greek-wordlist
     (query)
   "Search the TLG using its wordlist."
   (interactive "sSearch TLG wordlist: ")
-  (make-comint "diogenes-wordlist" "diogenes-cli.pl" nil "-w" query)
+  (make-comint "diogenes-wordlist" diogenes-cli.pl nil "-w" query)
   (switch-to-buffer "*diogenes-wordlist*"))
 
 (defun diogenes-search-greek-wordlist-all
     (query)
   "Search the TLG using its wordlist."
   (interactive "sSearch TLG wordlist (all): ")
-  (shell-command (format "diogenes-cli.pl -wa %s" query)))
+  (shell-command (format "%s -wa %s" diogenes-cli-cmd query)))
 
 (defun diogenes-apostrophe (&optional start end)
   "Replace all greek apostrophes with the typographical correct ῾."

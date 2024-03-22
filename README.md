@@ -20,21 +20,18 @@ writing you can either use my
 	# 2) to have write permissions to this directory (su root, ...)
 	patch /usr/local/diogenes/server/diogenes-cli.pl < diogenes-cli.patch
 	
-After that, diogenes-cli.pl should be working. It is advisable to symlink diogenes-cli.pl to your $PATH; alternatively, you have to alter all occurences of "diogenes-cli.pl" in diogenes.el to hold the full path to the diogenes-cli.pl script.
+After that, diogenes-cli.pl should be working. You can test it with
 
-	ln -s /usr/local/diogenes/server/diogenes-cli.pl /somewhere/in/your/path/
-	
-Test it now by executing
-
-	diogenes-cli.pl
+	/usr/local/diogenes/server/diogenes-cli.pl # adapt path, if necessary
 	
 Now copy diogenes.el into the elisp subfolder of your .emacs.d (creating it when necessary). Adapt the path if necessary
 
 	cp diogenes.el ~/.emacs.d/elisp/
 	
-Now add these two lines to your .emacs or init.el
+Now add these three lines to your .emacs or init.el
 
 	(add-to-list 'load-path (expand-file-name "~/.emacs.d/elisp"))
+	(setq diogenes-cli-cmd "/usr/local/diogenes/server/diogenes-cli.pl")
 	(require 'diogenes)
 
 Finally, check the keybinding at the end of the diogenes.el file and alter them if they do not fit you.
@@ -60,7 +57,8 @@ Usage
     correct, use diogenes-apostrophe
   * To convert dates between BC/AD and olympiads, use diogenes-ol-to-ad and diogenes-ad-to-ol
   
-  
+Please check out also my morpheus.el for an interface with the morpheus utility of the Perseus project, it works well with the textual output of diogenes.el.
+
 
 
 
