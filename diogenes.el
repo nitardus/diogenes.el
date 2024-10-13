@@ -1,3 +1,5 @@
+;;; diogenes.el -- Interface to diogens-cli -*- lexical-binding: t -*-
+
 (defgroup diogenes nil
   "Interface to P. Heslin's Diogenes"
   :group 'tools)
