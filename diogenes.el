@@ -2205,6 +2205,7 @@
                                            "Vita Iuvenalis (9969)"
                                            "Latin Canon (9999)") nil nil) -5 -1))
 
+;;;###autoload
 (defun diogenes-search-greek (query &optional author)
   "Searches for a phrase in the Greek TLG database using the diogenes command-line utility."
   (interactive (list
@@ -2215,6 +2216,7 @@
       (shell-command (format "%s -g -n %s '%s'" diogenes-cli-cmd author query))
     (shell-command (format "%s -g '%s'" diogenes-cli-cmd query))))
 
+;;;###autoload
 (defun diogenes-search-latin (query &optional author)
   "Searches for a phrase in the Greek TLG database using the diogenes command-line utility."
   (interactive (list
@@ -2232,6 +2234,7 @@
   (make-comint "diogenes-search" diogenes-cli-cmd nil "-gF" query)
   (switch-to-buffer "*diogenes-search*"))
 
+;;;###autoload
 (defun diogenes-browse-greek
     (query)
   "Browse the TLG database"
@@ -2246,6 +2249,7 @@
   (make-comint "diogenes-browse" diogenes-cli-cmd nil "-bg" "-c" "1000000" "-n" query)
   (switch-to-buffer "*diogenes-browse*"))
 
+;;;###autoload
 (defun diogenes-browse-latin
     (query)
   "Browse the PHI database"
@@ -2253,6 +2257,7 @@
   (make-comint "diogenes-browse-latin" diogenes-cli-cmd nil "-bl" "-n" query)
   (switch-to-buffer "*diogenes-browse-latin*"))
 
+;;;###autoload
 (defun diogenes-search-greek-wordlist
     (query)
   "Search the TLG using its wordlist."
@@ -2260,12 +2265,14 @@
   (make-comint "diogenes-wordlist" diogenes-cli.pl nil "-w" query)
   (switch-to-buffer "*diogenes-wordlist*"))
 
+;;;###autoload
 (defun diogenes-search-greek-wordlist-all
     (query)
   "Search the TLG using its wordlist."
   (interactive "sSearch TLG wordlist (all): ")
   (shell-command (format "%s -wa %s" diogenes-cli-cmd query)))
 
+;;;###autoload
 (defun diogenes-apostrophe (&optional start end)
   "Replace all greek apostrophes with the typographical correct ῾."
   (interactive "r")
@@ -2277,6 +2284,7 @@
       (replace-regexp "\\([[:nonascii:]]+\\)['’]" "\\1᾿"))))
 
 ;; Problems with bracketed [] words
+;;;###autoload
 (defun diogenes-unhyphen-greek (&optional start end)
   "Delete hypenation in active region or until EOBP.
 It works by adding the remainder of the word to the truncated
@@ -2332,6 +2340,7 @@ active region."
         (setq kill-ring-yank-pointer (cdr kill-ring-yank-pointer))))))
 
 ;; For the future: Function to hide line numbers
+;;;###autoload
 (defun diogenes-delete-line-numbers ()
   "Delete line numbers, starting at point"
   (interactive)
@@ -2356,6 +2365,7 @@ active region."
                  (point))))
       (delete-rectangle start end))))
 
+;;;###autoload
 (defun diogenes-tidy-up-browser-output-greek ()
   "Tidy up the output of the Diogenes Browser.
 Works on the rest of the buffer starting at point, or on the
@@ -2397,6 +2407,7 @@ active region."
       (insert-char ?% 70)
       (newline))))
 
+;;;###autoload
 (defun diogenes-tidy-up-browser-output-latin ()
   "Tidy up the output of the Diogenes Browser.
 Works on the rest of the buffer starting at point, or on the
@@ -2438,6 +2449,7 @@ active region."
       (insert-char ?% 70)
       (newline))))
 
+;;;###autoload
 (defun diogenes-tidy-up-search-results ()
   "Post-processes search results of diogenes"
   (interactive)
