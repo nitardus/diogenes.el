@@ -2215,7 +2215,7 @@
                 (when (not (y-or-n-p "Search the whole TLG corpus? "))
                   (diogenes-completing-author-greek))))
   (if author
-      (shell-command (format "%s -g -n %s '%s'" diogenes-cli-cmd author query))
+      (shell-command (format "'%s' -g -n %s '%s'" diogenes-cli-cmd author query))
     (shell-command (format "%s -g '%s'" diogenes-cli-cmd query))))
 
 ;;;###autoload
@@ -2226,7 +2226,7 @@
                 (when (not (y-or-n-p "Search the whole PHI corpus? "))
                   (diogenes-completing-author-latin))))
   (if author
-      (shell-command (format "%s -l -n %s '%s'" diogenes-cli-cmd author query))
+      (shell-command (format "'%s' -l -n %s '%s'" diogenes-cli-cmd author query))
     (shell-command (format "%s -l '%s'" diogenes-cli-cmd query))))
 
 (defun diogenes-search-greek-interactive
@@ -2272,7 +2272,7 @@
     (query)
   "Search the TLG using its wordlist."
   (interactive "sSearch TLG wordlist (all): ")
-  (shell-command (format "%s -wa %s" diogenes-cli-cmd query)))
+  (shell-command (format "'%s' -wa %s" diogenes-cli-cmd query)))
 
 ;;;###autoload
 (defun diogenes-apostrophe (&optional start end)
