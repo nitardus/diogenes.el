@@ -2216,7 +2216,7 @@
                   (diogenes-completing-author-greek))))
   (if author
       (shell-command (format "'%s' -g -n %s '%s'" diogenes-cli-cmd author query))
-    (shell-command (format "%s -g '%s'" diogenes-cli-cmd query))))
+    (shell-command (format "'%s' -g '%s'" diogenes-cli-cmd query))))
 
 ;;;###autoload
 (defun diogenes-search-latin (query &optional author)
@@ -2227,7 +2227,7 @@
                   (diogenes-completing-author-latin))))
   (if author
       (shell-command (format "'%s' -l -n %s '%s'" diogenes-cli-cmd author query))
-    (shell-command (format "%s -l '%s'" diogenes-cli-cmd query))))
+    (shell-command (format "'%s' -l '%s'" diogenes-cli-cmd query))))
 
 (defun diogenes-search-greek-interactive
     (query)
