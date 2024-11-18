@@ -29,21 +29,23 @@ to the "server" subfolder of your Diogenes installation:
 Or, using use-package (with some handy key-bindings)
 
 	(use-package diogenes
-		:config (setq diogenes-library-path "/path/to/diogenes")
-		:bind 
-			(("C-c d b g" . diogenes-browse-tlg)
-			("C-c d b l" . diogenes-browse-phi)
-			("C-c d b i" . diogenes-browse-ddp)
-			("C-c d d g" . diogenes-dump-tlg)
-			("C-c d d l" . diogenes-dump-phi)
-			("C-c d d i" . diogenes-dump-ddp)
-			("C-c d s g" . diogenes-search-tlg)
-			("C-c d s l" . diogenes-search-phi)
-			("C-c d s i" . diogenes-search-ddp)
-			("C-c d l l" . diogenes-lookup-latin)
-			("C-c d l g" . diogenes-lookup-greek)
-			("C-c d p l" . diogenes-parse-latin)
-			("C-c d p g" . diogenes-parse-greek))
+	  :config
+	  (setq diogenes-path "/path/to/diogenes/")
+	  :bind 
+	  ("C-c d b g" . diogenes-browse-tlg)
+	  ("C-c d b l" . diogenes-browse-phi)
+	  ("C-c d b i" . diogenes-browse-ddp)
+	  ("C-c d d g" . diogenes-dump-tlg)
+	  ("C-c d d l" . diogenes-dump-phi)
+	  ("C-c d d i" . diogenes-dump-ddp)
+	  ("C-c d s g" . diogenes-search-tlg)
+	  ("C-c d s l" . diogenes-search-phi)
+	  ("C-c d s i" . diogenes-search-ddp)
+	  ("C-c d l l" . diogenes-lookup-latin)
+	  ("C-c d l g" . diogenes-lookup-greek)
+	  ("C-c d p l" . diogenes-parse-latin)
+	  ("C-c d p g" . diogenes-parse-greek))
+
 
 Usage
 -----
