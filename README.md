@@ -1,63 +1,76 @@
-
 diogenes.el
 ===========
 
-Diogenes.el is a collection of some Emacs Lisp functions that use the
-CLI interface of P. Heslin's Diogenes to browse and search the TLG und
-PHI Greek and Latin databases from within Emacs. They are quite hacky
-in design, but tend to do their job.
+Diogenes.el strives to be a complete interface to P. Heslin's Diogenes
+that allows to browse and search the TLG und PHI Greek and Latin
+databases from within Emacs, as well as to lookup words at point in
+the lexica that come with Diogenes. Unkike the previsus version of
+this package, it now uses custom perl scripts to communicate with
+Diogenes' perl API and tries to cover it entirely. For a collection of
+command line scripts and perl modules that offer similar
+functionalities, see my DiogenesUtils.
 
 Installation
 ------------
 
-Please make sure that you have a working installation of Diogenes; due
-to a bug in the main repository of diogenes, at the time of this
-writing you can either use my
-[fork](https://github.com/nitardus/diogenes) or patch the original:
-
-	# when executing this command, make sure
-	# 1) to alter the path /usr/local/... to the place where your diogenes installation resides
-	# 2) to have write permissions to this directory (su root, ...)
-	patch /usr/local/diogenes/server/diogenes-cli.pl < diogenes-cli.patch
-	
-After that, diogenes-cli.pl should be working. You can test it with
-
-	/usr/local/diogenes/server/diogenes-cli.pl # adapt path, if necessary
-	
-Now copy diogenes.el into the elisp subfolder of your .emacs.d (creating it when necessary). Adapt the path if necessary
-
-	cp diogenes.el ~/.emacs.d/elisp/
-	
-Now add these three lines to your .emacs or init.el
+Please make sure that you have a working installation of Diogenes.
+After that, copy the diogenes.el someplace in your elisp load path,
+e.g. to ~/.emacs.d/elisp (make sure that this folder exists and is in
+the load-path list, like so: 
 
 	(add-to-list 'load-path (expand-file-name "~/.emacs.d/elisp"))
-	(setq diogenes-cli-cmd "/usr/local/diogenes/server/diogenes-cli.pl")
+	
+Now require it and set the path to the diogenes-libary-path variable
+to the "server" subfolder of your Diogenes installation:
+
 	(require 'diogenes)
+	(setq diogenes-library-path "/path/to/diogenes/server)
 
-Finally, check the keybinding at the end of the diogenes.el file and alter them if they do not fit you.
+Or, using use-package (with some handy key-bindings)
 
+	(use-package diogenes
+		:config (setq diogenes-library-path "/path/to/diogenes")
+		:bind 
+			(("C-c d b g" . diogenes-browse-tlg)
+			("C-c d b l" . diogenes-browse-phi)
+			("C-c d b i" . diogenes-browse-ddp)
+			("C-c d d g" . diogenes-dump-tlg)
+			("C-c d d l" . diogenes-dump-phi)
+			("C-c d d i" . diogenes-dump-ddp)
+			("C-c d s g" . diogenes-search-tlg)
+			("C-c d s l" . diogenes-search-phi)
+			("C-c d s i" . diogenes-search-ddp)
+			("C-c d l l" . diogenes-lookup-latin)
+			("C-c d l g" . diogenes-lookup-greek)
+			("C-c d p l" . diogenes-parse-latin)
+			("C-c d p g" . diogenes-parse-greek))
 
 Usage
 -----
 
-  * Search the corpora with M-x diogenes-search-greek or M-x
-    diogenes-search-latin
-  * Tidy up the search results with M-x
-    diogenes-tidy-up-search-results
-  * Browse the TLG with M-x diogenes-browse-greek and the PHI with M-x
-    diogenes-browse-latin
-  * Tidy up the browser output with M-x
-    diogenes-tidy-up-browser-output-greek and M-x
-    diogenes-tidy-up-browser-output-latin
-  * You can delete hyphenations with M-x diogenes-unhyphen-greek and M-x diogenes-unhyphen
-  * To get line numbers in every line of the browser output, use M-x
-    diogenes-browser-insert-line-numbers
-  * To get rid of the line numbers, use M-x diogens-delete-line-numbers
-  * To reformat the apostrophe character to be typographically
-    correct, use diogenes-apostrophe
-  * To convert dates between BC/AD and olympiads, use diogenes-ol-to-ad and diogenes-ad-to-ol
-  
-Please check out also my morpheus.el for an interface with the morpheus utility of the Perseus project, it works well with the textual output of diogenes.el.
+  * Search the corpora with M-x diogenes-search-tlg, M-x
+    diogenes-search-phi or M-x diogenes-search-ddp
+  * Browse the corpora with M-x diogenes-browse-tlg,
+    diogenes-browse-phi and diogenes-browse-ddp. This opens the text
+    in the Diogenes Browser Mode. Here,
+	* load the next page of text by going to the next line at the end
+      of the buffer (diogenes-browse-forward)
+	* load the previous page of text by going to the previous line at
+      the start of the buffer (diogenes-browse-backward)
+  	* toggle the citations with C-c C-n
+        (diogenes-browser-toggle-citations)
+	* remove hyphenations with C-c C--
+      (diogenes-diogenes-browser-remove-hyphenation; call it with a
+      prefix to mark the deleted hyphens with a vertical bar)
+	* reinsert the hyphenations with C-c C-+
+      (diogenes-browser-reinsert-
+  * Parse and/or look up the word at point in the dictionaries
+    (diogenes-lookup-greek, diogenes-lookup-latin,
+    diogenes-parse-greek, diogenes-parse-latin)
+  * Dump whole works from the corpora with M-x diogenes-dump-tlg,
+    diogenes-dump-phi, diogenes-dump-ddp
+  * Convert dates between BC/AD and olympiads with diogenes-ol-to-ad
+    and diogenes-ad-to-ol
 
 
 
