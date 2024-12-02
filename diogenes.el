@@ -77,8 +77,9 @@
   :group 'diogenes)
 
 (defun diogenes--path ()
-  (or diogenes-path
-      (error "diogenes-path is not set! 
+  (if diogenes-path
+      (expand-file-name diogenes-path)
+    (error "diogenes-path is not set! 
 Please set it to the root directory of your Diogenes installation!")))
 
 (defun diogenes--include-server ()
