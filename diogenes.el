@@ -105,6 +105,28 @@ Please set it to the root directory of your Diogenes installation!")))
     (_ (error "Undefined language %s" lang))))
 
 
+;;; Validate that all data is present
+(unless (file-exists-p (file-name-concat (diogenes--path)
+					 "server"
+					 "Diogenes"
+					 "Base.pm"))
+  (error "Could not find a working Diogenes installation in %s"
+	 (diogenes--path)))
+
+(mapc (lambda (lang)
+	(unless (file-exists-p (diogenes--dict-file lang))
+	  (error "Could not find %s lexicon at %s."
+		 lang (diogenes--dict-file lang))))
+      '("greek" "latin"))
+
+(mapc (lambda (file)
+	(unless (file-exists-p (file-name-concat (diogenes--perseus-path)
+						 file))
+	  (error "Could not find %s in %s. Did you build them?"
+		 file (diogenes--perseus-path))))
+      '("greek-analyses.txt" "greek-lemmata.txt"
+	"latin-analyses.txt" "latin-lemmata.txt"))
+
 ;;;; --------------------------------------------------------------------
 ;;;; TOPLEVEL FUNCTIONS
 ;;;; --------------------------------------------------------------------
@@ -831,7 +853,6 @@ Returns a list that diogenes--browse-work can be applied to."
 
 
 ;;; Parse XML
-;; TODO: try-correct-xml wieder einfügen
 (defun diogenes--dict-parse-xml (str begin end)
   "Try to parse a string containing the XML of a dictionary entry."
   (let ((parsed (with-temp-buffer (insert (diogenes--try-correct-xml str))
