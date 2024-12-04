@@ -24,13 +24,13 @@ Now require it and set the path to the diogenes-libary-path variable
 to the "server" subfolder of your Diogenes installation:
 
 	(require 'diogenes)
-	(setq diogenes-library-path "/path/to/diogenes/server)
+	(setq diogenes-library-path "/path/to/diogenes)
 
 Or, using use-package (with some handy key-bindings)
 
 	(use-package diogenes
-	  :config
-	  (setq diogenes-path "/path/to/diogenes/")
+	  :custom
+	  (diogenes-path "/path/to/diogenes")
 	  :bind 
 	  ("C-c d b g" . diogenes-browse-tlg)
 	  ("C-c d b l" . diogenes-browse-phi)
