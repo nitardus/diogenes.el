@@ -10,6 +10,9 @@
 ;; This file contains functions that provide the user interface of diogenes.el
 
 ;;; Code:
+(require 'cl-lib)
+(require 'seq)
+(require 'diogenes-lisp-utils)
 
 ;;; Runners
 (defun diogenes--do-search (options &optional authors)
@@ -32,9 +35,6 @@ number of the author and the number of the work."
 
 Passage has to be a list of strings containing the four digit
 number of the author and the number of the work."
-  ;; (diogenes--make-comint 'diogenes-browser-mode
-  ;; 			 (diogenes--browse-interactivly-script options
-  ;; 							       passage))
   (diogenes--start-perl "browser"
 			(diogenes--browse-interactively-script options passage)
 			#'diogenes--browser-filter)

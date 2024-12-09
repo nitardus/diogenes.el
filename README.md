@@ -14,11 +14,11 @@ Installation
 ------------
 
 Please make sure that you have a working installation of Diogenes.
-After that, copy the diogenes.el someplace in your elisp load path,
+After that, clone this repository someplace in your elisp load path,
 e.g. to ~/.emacs.d/elisp (make sure that this folder exists and is in
 the load-path list, like so: 
 
-	(add-to-list 'load-path (expand-file-name "~/.emacs.d/elisp"))
+	(add-to-list 'load-path (expand-file-name "~/.emacs.d/elisp/diogenes.el"))
 	
 Now require it and set the path to the diogenes-libary-path variable
 to the "server" subfolder of your Diogenes installation:
@@ -67,8 +67,8 @@ Usage
 	* reinsert the hyphenations with C-c C-+
       (diogenes-browser-reinsert-
   * Parse and/or look up the word at point in the dictionaries
-    (diogenes-lookup-greek, diogenes-lookup-latin,
-    diogenes-parse-greek, diogenes-parse-latin)
+    (diogenes-parse-and-lookup-greek, diogenes-parse-and-lookup-latin,
+    diogenes-lookup-greek, diogenes-lookup-latin)
   * Dump whole works from the corpora with M-x diogenes-dump-tlg,
     diogenes-dump-phi, diogenes-dump-ddp
   * Convert dates between BC/AD and olympiads with diogenes-ol-to-ad

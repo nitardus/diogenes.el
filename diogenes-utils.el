@@ -10,6 +10,10 @@
 ;; This file contains conversions from and to beta code, and some other minor utilities
 
 ;;; Code:
+(require 'cl-lib)
+(require 'seq)
+(require 'diogenes-lisp-utils)
+(require 'ucs-normalize)
 
 ;;; Conversion from and to greek beta code
 (defconst diogenes--beta-to-utf8-map
@@ -138,14 +142,13 @@
   "Convert a string from Perseus greek beta code to utf-8.
 In addition to diogenes--beta-to-utf8, it handles also macron and
 breve signs."
-  (diogenes--beta-to-utf8
-   (diogenes--replace-regexes-in-string
-    str
-    ("_\\([=/\\|+()]+\\)" "\\1\N{COMBINING MACRON}")	
-    ;;("\\([[:multibyte:]]\\)_" "\\1\N{COMBINING MACRON}")
-    ("\\^\\([=/\\|+()]+\\)" "\\1\N{COMBINING BREVE}")
-    ;;("\\([[:multibyte:]]\\)\\^" "\\1\N{COMBINING BREVE}")
-    )))
+  (when str
+    (diogenes--beta-to-utf8
+     (diogenes--replace-regexes-in-string str
+       ("\\(.\\)_\\([=/\\|+()]+\\)" "\N{COMBINING MACRON}\\1\\2")	
+       ("_" "\N{COMBINING MACRON}")
+       ("\\(.\\)\\^\\([=/\\|+()]+\\)" "\N{COMBINING BREVE}\\1\\2")
+       ("\\^" "\N{COMBINING BREVE}")))))
 
 (defun diogenes--utf8-to-beta (str)
   "Convert utf-8 greek in a string to greek beta code."
@@ -167,6 +170,18 @@ breve signs."
 
 (defun diogenes--beta-normalize-gravis (str)
   (replace-regexp-in-string "\\\\" "/" str))
+
+(defsubst diogenes--unicode-non-spacing-mark-p (c)
+  "Test for the category non-spacing-mark"
+  (= 6 (aref unicode-category-table c)))
+
+
+;; Strip diacritics
+;;;###autoload
+(defun diogenes-strip-diacritics (str)
+  "Remove all diacritics in a string."
+  (cl-remove-if #'diogenes--unicode-non-spacing-mark-p
+		(string-glyph-decompose str)))
 
 
 

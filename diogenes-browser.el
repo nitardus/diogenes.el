@@ -10,6 +10,10 @@
 ;; This file contains functions for browsing the Corpora that Diogenes can read
 
 ;;; Code:
+(require 'cl-lib)
+(require 'seq)
+(require 'diogenes-lisp-utils)
+(require 'diogenes-perl-interface)
 
 ;;;; --------------------------------------------------------------------
 ;;;; BROWSER

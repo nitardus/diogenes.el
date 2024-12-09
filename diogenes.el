@@ -6,7 +6,7 @@
 ;; Author: Michael Neidhart <mayhoth@gmail.com>
 ;; Keywords: classics, tools, philology, humanities
 ;;
-;; Version: 0.3
+;; Version: 0.4
 ;; Package-Requires: (cl-lib transient)
 
 ;; This file is not part of GNU Emacs.
@@ -36,14 +36,14 @@
 ;;       - location
 ;;     - interface with transient
 ;; - Indexed (...)
-;; - Diogenes minor mode: TLG lookup at-point
+;; - Browser Mode: Try to read reference at point
+;;     - FIXME: browse-forward and browse-backward broken in latin texts
 
 ;;; Code:
-
+;; (require 'transient)
 (require 'cl-lib)
 (require 'thingatpt)
 (require 'seq)
-;; (require 'transient)
 
 (require 'diogenes-lisp-utils)
 (require 'diogenes-utils)
@@ -134,7 +134,7 @@ Please set it to the root directory of your Diogenes installation!")))
       '("greek-analyses.txt" "greek-lemmata.txt"
 	"latin-analyses.txt" "latin-lemmata.txt"))
 
-
+
 ;;; SEARCH
 ;;;###autoload
 (defun diogenes-search-tlg (options-or-pattern
@@ -193,7 +193,7 @@ Uses the Diogenes Perl module."
   (diogenes--search-database "cop" options-or-pattern author-plist prefix))
 
 
-
+
 ;;; DUMP
 ;;;###autoload
 (defun diogenes-dump-tlg (&optional author work)
@@ -245,7 +245,7 @@ Uses the Diogenes Perl module."
   (diogenes--dump-from-database "cop" author work))
 
 
-
+
 ;;; BROWSE
 ;;;###autoload
 (defun diogenes-browse-tlg (&optional author work)
@@ -297,7 +297,7 @@ Uses the Diogenes Perl module."
   (diogenes--browse-database "cop" author work))
 
 
-
+
 ;;; DICTIONARY LOOKUP
 ;;;###autoload
 (defun diogenes-lookup-greek (word)
@@ -305,57 +305,59 @@ Uses the Diogenes Perl module."
 Accepts both Unicode and Beta Code as input."
   (interactive (list (read-from-minibuffer "Search LSJ for: "
 					   (thing-at-point 'word t))))
-  (let ((normalized (diogenes--beta-normalize-gravis
-		     (diogenes--greek-ensure-beta word))))
-    (diogenes--search-dict normalized "greek"
-			   #'diogenes--beta-sort-function
-			   #'diogenes--xml-key-fn)))
+  (diogenes--lookup-dict word "greek"))
 
+;;;###autoload
 (defun diogenes-lookup-latin (word)
   "Search for a greek word in the Lewis & Short Latin Dictionary."
   (interactive (list (read-from-minibuffer "Search Lewis & Short for: "
 					   (thing-at-point 'word t))))
-  (diogenes--search-dict word "latin"
-			 #'diogenes--ascii-sort-function
-			 #'diogenes--xml-key-fn))
-
+  (diogenes--lookup-dict word "latin"))
 
 ;;; MORPHEUS PARSING
 ;;;###autoload
-(defun diogenes-parse-greek-exact (word)
-  "Parse a greek word and display the results."
+(defun diogenes-parse-and-lookup-greek (word)
+  "Try to parse a greek word."
   (interactive (list (read-from-minibuffer "Parse greek word: "
 					   (thing-at-point 'word t))))
-  (pop-to-buffer (get-buffer-create "*diogenes morphology raw output*"))
-  (diogenes-analysis-mode)
-  (insert (prin1-to-string (diogenes--parse-word word "greek"))))
+  (diogenes--parse-and-lookup word "greek"))
+
+;;;###autoload
+(defun diogenes-parse-and-lookup-latin (word)
+  "Try to parse a latin word."
+  (interactive (list (read-from-minibuffer "Parse greek word: "
+					   (thing-at-point 'word t))))
+  (diogenes--parse-and-lookup word "latin"))
 
 ;;;###autoload
 (defun diogenes-parse-greek (query)
   "Parse a greek word and display the results.
 QUERY is interpreted as a regular expression which must match the forms."
-  (interactive (list (read-from-minibuffer "Parse greek word: "
+  (interactive (list (read-from-minibuffer "Parse Greek word: "
 					   (thing-at-point 'word t))))
-  (pop-to-buffer (get-buffer-create "*diogenes morphology raw output*"))
-  (emacs-lisp-mode)
-  (insert (prin1-to-string (diogenes--parse-all query "greek" #'string-match))))
+    (diogenes--parse-and-show query "greek"))
 
 ;;;###autoload
-(defun diogenes-show-lemma-and-forms-greek-exact (word)
-  "Show all attested forms in a lemma."
+(defun diogenes-parse-latin (query)
+  "Parse a latin word and display the results.
+QUERY is interpreted as a regular expression which must match the forms."
+  (interactive (list (read-from-minibuffer "Parse Latin word: "
+					   (thing-at-point 'word t))))
+  (diogenes--parse-and-show query "latin"))
+
+;;;###autoload
+(defun diogenes-show-all-forms-greek (lemma)
+  "Show all attested forms of a Greek lemma."
   (interactive "sShow all forms of: ")
-  (pop-to-buffer (get-buffer-create "*diogenes morphology raw output*"))
-  (emacs-lisp-mode)
-  (insert (prin1-to-string (diogenes--show-all-forms word "greek"))))
+  (diogenes--show-all-forms (diogenes--greek-ensure-beta lemma) "greek"))
 
-;; ;;;###autoload
-;; (defun diogenes-parse-latin-exact (word)
-;;   "Parse a greek word and display the results."
-;;   (interactive "sParse latin word: ")
-;;     (emacs-lisp-mode)
-;;   (insert (prin1-to-string (diogenes--parse-word word "latin"))))
+;;;###autoload
+(defun diogenes-show-all-forms-latin (lemma)
+  "Show all attested forms of a Latin lemma."
+  (interactive "sShow all forms of: ")
+  (diogenes--show-all-forms lemma "latin"))
 
-
+
 ;;; UTILITIES
 ;;;###autoload
 (defun diogenes-utf8-to-beta (str)
@@ -409,10 +411,6 @@ otherwise, prompt the user for input."
 	     (1+ (mod year 4)))))
 
 
-
-
-
-;;; Implementation:
 
 (provide 'diogenes)
 

@@ -10,6 +10,9 @@
 ;; This file contains functions for searching the Corpora that Diogenes can read
 
 ;;; Code:
+(require 'cl-lib)
+(require 'seq)
+(require 'diogenes-lisp-utils)
 
 (defun diogenes--process-pattern (pattern)
   "Make sure a pattern is all ASCII. When dealing with greek
