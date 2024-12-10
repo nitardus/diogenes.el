@@ -60,6 +60,18 @@
   (forward-line (- N))
   (when (bobp) (diogenes-browser-backward)))
 
+(defun diogenes-browser-beginning-of-buffer (&optional N)
+  (interactive "^P")
+  (when (and (not N) (bobp))
+    (diogenes-browser-backward))
+  (beginning-of-buffer N))
+
+(defun diogenes-browser-end-of-buffer (&optional N)
+  (interactive "^P")
+  (when (and (not N) (eobp))
+    (diogenes-browser-forward))
+  (end-of-buffer N))
+
 
 
 ;;; Utility commands
@@ -154,23 +166,41 @@
 	      (insert (apply #'propertize "-"
 			     prop-a)))))))))
 
+(defun diogenes-browser-lookup ()
+  "Lookup word at point."
+  (interactive)
+  (funcall #'diogenes-parse-and-lookup-greek
+	 (replace-regexp-in-string "[^[:alpha:]]" ""
+				   (thing-at-point 'word))))
+
 ;;; Browser Mode
 (defvar diogenes-browser-mode-map
   (let ((map (nconc (make-sparse-keymap) text-mode-map)))
-    (keymap-set map "<down>" #'diogenes-browser-forward-line)
-    (keymap-set map "C-n" #'diogenes-browser-forward-line)
-    (keymap-set map "<up>" #'diogenes-browser-backward-line)
-    (keymap-set map "C-p" #'diogenes-browser-backward-line)
-    (keymap-set map "C-c C-c" #'diogenes-browser-quit)
+    ;; Overrides of movement keys
+    (keymap-set map "C-p"      #'diogenes-browser-backward-line)
+    (keymap-set map "<up>"     #'diogenes-browser-backward-line)
+    (keymap-set map "C-n"      #'diogenes-browser-forward-line)
+    (keymap-set map "<down>"   #'diogenes-browser-forward-line)
+    (keymap-set map "M-<"      #'diogenes-browser-beginning-of-buffer)
+    (keymap-set map "C-<home>" #'diogenes-browser-beginning-of-buffer)
+    (keymap-set map "M->"      #'diogenes-browser-end-of-buffer)
+    (keymap-set map "C-<end>"  #'diogenes-browser-end-of-buffer)
+    (keymap-set map "C-c C-n"  #'diogenes-browser-forward)
+    (keymap-set map "C-c C-p"  #'diogenes-browser-backward)
+    ;; Actions
+    (keymap-set map "C-c C-c" #'diogenes-browser-lookup)
+    (keymap-set map "C-c C-q" #'diogenes-browser-quit)
+    ;; Utilities
     (keymap-set map "C-c C--" #'diogenes-browser-remove-hyphenation)
     (keymap-set map "C-c C-+" #'diogenes-browser-reinsert-hyphenation)
-    (keymap-set map "C-c C-n" #'diogenes-browser-toggle-citations)
+    (keymap-set map "C-c C-t" #'diogenes-browser-toggle-citations)
     map)
   "Basic mode map for the Diogenes Browser.")
 
 (define-derived-mode diogenes-browser-mode text-mode "Diogenes Browser"
   "Major mode to browse Diogenes' databases."
-  (make-local-variable 'diogenes--browser-backwards))
+  (make-local-variable 'diogenes--browser-backwards)
+  (make-local-variable 'diogenes--browser-language))
 
 
 
@@ -233,7 +263,20 @@ If it is incomplete, buffer it and prepend it when called again."
 	 (set-marker (process-mark proc) (point-max))
 	 (recenter -1 t))))))
 
+(defun diogenes--browse-work (options passage)
+  "Function that browses a work from the Diogenes Databases.
 
+Passage has to be a list of strings containing the four digit
+number of the author and the number of the work."
+  (diogenes--start-perl "browser"
+			(diogenes--browse-interactively-script options passage)
+			#'diogenes--browser-filter)
+  (diogenes-browser-mode)
+  (let ((type (plist-get options :type)))
+    (setq diogenes--browser-language
+	  (pcase type
+	    ("tlg" "greek")
+	    ("phi" "latin")))))
 
 (defun diogenes--browse-database (type &optional author work)
   "Select a specific passage in a work from a diogenes database for browsing.
@@ -254,6 +297,16 @@ Uses the Diogenes Perl module."
 ;;;; --------------------------------------------------------------------
 ;;;; DUMPER
 ;;;; --------------------------------------------------------------------
+
+(defun diogenes--dump-work (options passage)
+  "Function that dumps a work from the Diogenes Databases.
+
+Passage has to be a list of strings containing the four digit
+number of the author and the number of the work."
+  (diogenes--start-perl "dump"
+			(diogenes--browser-script
+			 (append options '(:browse-lines 1000000))
+			 passage)))
 
 (defun diogenes--dump-from-database (type &optional author work)
   "Dump a work from a Diogenes database in its entirety.

@@ -30,6 +30,11 @@ unicode, convert it to beta code and correctly escape the regex metacharacters."
 ;;;; SIMPLE SEARCH
 ;;;; --------------------------------------------------------------------
 
+(defun diogenes--do-search (options &optional authors)
+  "Function that executes a search query in the Diogenes Databases."
+  (diogenes--start-perl "search"
+			(diogenes--search-script options authors)))
+
 (defun diogenes--search-database (type &optional
 				       options-or-pattern author-plist prefix)
   "Search for a phrase in Diogenes database using the Diogenes Perl Module.

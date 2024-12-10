@@ -38,6 +38,7 @@
 ;; - Indexed (...)
 ;; - Browser Mode: Try to read reference at point
 ;;     - FIXME: browse-forward and browse-backward broken in latin texts
+;; - Info Manual
 
 ;;; Code:
 ;; (require 'transient)
@@ -179,7 +180,7 @@ Uses the Diogenes Perl module."
 ;;;###autoload
 (defun diogenes-search-misc (options-or-pattern
 			    &optional author-plist prefix)
-  "Search for a phrase in the Miscellaneous PHI Texts  Database.
+  "Search for a phrase in the Miscellaneous PHI Texts Database.
 Uses the Diogenes Perl module."
   (interactive "i\ni\np")
   (diogenes--search-database "misc" options-or-pattern author-plist prefix))
@@ -187,7 +188,7 @@ Uses the Diogenes Perl module."
 ;;;###autoload
 (defun diogenes-search-cop (options-or-pattern
 			    &optional author-plist prefix)
-  "Search for a phrase in the  PHI Coptic Texts Database.
+  "Search for a phrase in the PHI Coptic Texts Database.
 Uses the Diogenes Perl module."
   (interactive "i\ni\np")
   (diogenes--search-database "cop" options-or-pattern author-plist prefix))
@@ -320,7 +321,8 @@ Accepts both Unicode and Beta Code as input."
   "Try to parse a greek word."
   (interactive (list (read-from-minibuffer "Parse greek word: "
 					   (thing-at-point 'word t))))
-  (diogenes--parse-and-lookup word "greek"))
+  (diogenes--parse-and-lookup (diogenes--greek-ensure-beta word)
+			      "greek"))
 
 ;;;###autoload
 (defun diogenes-parse-and-lookup-latin (word)
@@ -335,7 +337,8 @@ Accepts both Unicode and Beta Code as input."
 QUERY is interpreted as a regular expression which must match the forms."
   (interactive (list (read-from-minibuffer "Parse Greek word: "
 					   (thing-at-point 'word t))))
-    (diogenes--parse-and-show query "greek"))
+    (diogenes--parse-and-show (diogenes--greek-ensure-beta query)
+			      "greek"))
 
 ;;;###autoload
 (defun diogenes-parse-latin (query)

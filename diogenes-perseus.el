@@ -15,7 +15,7 @@
 (require 'diogenes-lisp-utils)
 (require 'diogenes-perl-interface)
 
-(declare-function diogenes--perseus-action nil)
+(declare-function diogenes-perseus-action nil)
 
 ;;;; --------------------------------------------------------------------
 ;;;; Low LEVEL INTERFACE
@@ -296,31 +296,35 @@ represents the properties of the element. It may also manipulate
 the contents of the element (cddr). Elements that only require
 special formatting are handled by th
 diogenes--dict-xml-handlers-extra variable."
-  (let ((tag (car elt)))
-    (cl-case tag
-      (head (when-let ((orth-orig (cdr (assoc 'orth_orig (cadr elt)))))
-	      (setf (cddr elt) (list orth-orig)))
-	    '(font-lock-face shr-h1))
-      (sense (push (concat "\n\n"
-			   (propertize (or (cdr (assoc 'n (cadr elt))) "")
-				       'font-lock-face 'success)
-			   " ")
-		   (cddr elt))
-	     nil)
-      (bibl (let ((map (make-sparse-keymap))
-		  (reference (cdr (assoc 'n (cadr elt)))))
-	      (keymap-set map "RET" #'diogenes--perseus-action)
-	      (keymap-set map "<double-mouse-1>" #'diogenes--perseus-action)
-	      (keymap-set map "<mouse-2>" #'diogenes--perseus-action)
-	      (list 'font-lock-face 'link
-		    'keymap map
-		    'action 'bibl
-		    'bibl reference
-		    'help-echo reference)))
-      (quote (when (stringp (caddr elt))
-	       (setf (caddr elt) (concat (caddr elt) " ")))
-	     nil)
-      (t (or (cdr (assoc tag diogenes--dict-xml-handlers-extra)))))))
+  (let ((tag (car elt))
+	(lang (or (alist-get 'lang (cadr elt))
+		  "english")))
+    (nconc 
+     (list 'lang lang)
+     (cl-case tag
+       (head (when-let ((orth-orig (cdr (assoc 'orth_orig (cadr elt)))))
+	       (setf (cddr elt) (list orth-orig)))
+	     '(font-lock-face shr-h1))
+       (sense (push (concat "\n\n"
+			    (propertize (or (cdr (assoc 'n (cadr elt))) "")
+					'font-lock-face 'success)
+			    " ")
+		    (cddr elt))
+	      nil)
+       (bibl (let ((map (make-sparse-keymap))
+		   (reference (cdr (assoc 'n (cadr elt)))))
+	       (keymap-set map "RET" #'diogenes-perseus-action)
+	       (keymap-set map "<double-mouse-1>" #'diogenes-perseus-action)
+	       (keymap-set map "<mouse-2>" #'diogenes-perseus-action)
+	       (list 'font-lock-face 'link
+		     'keymap map
+		     'action 'bibl
+		     'bibl reference
+		     'help-echo reference)))
+       (quote (when (stringp (caddr elt))
+		(setf (caddr elt) (concat (caddr elt) " ")))
+	      nil)
+       (t (or (cdr (assoc tag diogenes--dict-xml-handlers-extra))))))))
 
 
 
@@ -536,12 +540,33 @@ Returns a list that diogenes--browse-work can be applied to."
   (forward-line (- N))
   (when (bobp) (diogenes-lookup-previous)))
 
+(defun diogenes-lookup-beginning-of-buffer (&optional N)
+  (interactive "^P")
+  (when (and (not N) (bobp))
+    (diogenes-lookup-previous))
+  (beginning-of-buffer N))
+
+(defun diogenes-lookup-end-of-buffer (&optional N)
+  (interactive "^P")
+  (when (and (not N) (eobp))
+    (diogenes-lookup-next))
+  (end-of-buffer N))
+
+
 (defvar diogenes-lookup-mode-map
   (let ((map (nconc (make-sparse-keymap) text-mode-map)))
-    (keymap-set map "<down>" #'diogenes-lookup-forward-line)
-    (keymap-set map "C-n" #'diogenes-lookup-forward-line)
-    (keymap-set map "<up>" #'diogenes-lookup-backward-line)
-    (keymap-set map "C-p" #'diogenes-lookup-backward-line)
+    ;; Overrides of movement keys
+    (keymap-set map "C-p"      #'diogenes-lookup-backward-line)
+    (keymap-set map "<up>"     #'diogenes-lookup-backward-line)
+    (keymap-set map "C-n"      #'diogenes-lookup-forward-line)
+    (keymap-set map "<down>"   #'diogenes-lookup-forward-line)
+    (keymap-set map "M-<"      #'diogenes-lookup-beginning-of-buffer)
+    (keymap-set map "C-<home>" #'diogenes-lookup-beginning-of-buffer)
+    (keymap-set map "M->"      #'diogenes-lookup-end-of-buffer)
+    (keymap-set map "C-<end>"  #'diogenes-lookup-end-of-buffer)
+    (keymap-set map "C-c C-n"  #'diogenes-lookup-next)
+    (keymap-set map "C-c C-p"  #'diogenes-lookup-previous)
+    (keymap-set map "C-c C-c"  #'diogenes-perseus-action)
     map)
   "Basic mode map for the Diogenes Lookup Mode.")
 
@@ -714,9 +739,9 @@ Besides the fontification, it also checks for duplicate lemma
 entries and orders them accordingly."
   (let ((lemmata (diogenes--assign-parse-result-to-lemmata results))
 	(map (make-sparse-keymap)))
-    (keymap-set map "RET" #'diogenes--perseus-action)
-    (keymap-set map "<double-mouse-1>" #'diogenes--perseus-action)
-    (keymap-set map "<mouse-2>" #'diogenes--perseus-action)
+    (keymap-set map "RET" #'diogenes-perseus-action)
+    (keymap-set map "<double-mouse-1>" #'diogenes-perseus-action)
+    (keymap-set map "<mouse-2>" #'diogenes-perseus-action)
     (cl-loop
      for lemma in lemmata
      for (lemma-nr lemma-word translation entries) = lemma
@@ -900,12 +925,12 @@ function returns a list of lists."
 (defun diogenes--format-lemma-and-forms (lemma lang)
   "Format a LEMMA entry as returned by `diogenes--get-all-forms'."
   (let ((map (make-sparse-keymap)))
-    (keymap-set map "RET" #'diogenes--perseus-action)
-    (keymap-set map "<double-mouse-1>" #'diogenes--perseus-action)
-    (keymap-set map "<mouse-2>" #'diogenes--perseus-action)
+    (keymap-set map "RET" #'diogenes-perseus-action)
+    (keymap-set map "<double-mouse-1>" #'diogenes-perseus-action)
+    (keymap-set map "<mouse-2>" #'diogenes-perseus-action)
     (concat (propertize (car lemma)
 			'action 'lookup
-			'lookup (cadr lemma)
+			'lemma (cadr lemma)
 			'lang lang
 			'lemma-nr (caddr lemma)
 			'keymap map
@@ -940,7 +965,7 @@ function returns a list of lists."
 
 
 ;;; Callback function
-(defun diogenes--perseus-action (char)
+(defun diogenes-perseus-action (char)
   "Callback for the links in Diogenes Lookup and Analysis Mode."
   (interactive "d")
   (let ((action (get-text-property char 'action)))
@@ -950,7 +975,12 @@ function returns a list of lists."
       (lookup (diogenes--lookup-dict (get-text-property char 'lemma)
 				     (get-text-property char 'lang)))
       (forms (diogenes--show-all-forms (get-text-property char 'lemma)
-				       (get-text-property char 'lang))))))
+				       (get-text-property char 'lang)))
+      (t (let ((lang (get-text-property char 'lang)))
+	   (pcase lang
+	     ((or "greek" "latin")
+	      (diogenes--parse-and-lookup (thing-at-point 'word) lang))
+	     (_ (message "C-c C-c cannot do anything useful here!"))))))))
 
 
 

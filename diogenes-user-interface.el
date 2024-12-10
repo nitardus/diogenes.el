@@ -14,34 +14,6 @@
 (require 'seq)
 (require 'diogenes-lisp-utils)
 
-;;; Runners
-(defun diogenes--do-search (options &optional authors)
-  "Function that executes a search query in the Diogenes Databases."
-  (diogenes--start-perl "search"
-			(diogenes--search-script options authors)))
-
-(defun diogenes--dump-work (options passage)
-  "Function that dumps a work from the Diogenes Databases.
-
-Passage has to be a list of strings containing the four digit
-number of the author and the number of the work."
-  (diogenes--start-perl "dump"
-			(diogenes--browser-script
-			 (append options '(:browse-lines 1000000))
-			 passage)))
-
-(defun diogenes--browse-work (options passage)
-  "Function that browses a work from the Diogenes Databases.
-
-Passage has to be a list of strings containing the four digit
-number of the author and the number of the work."
-  (diogenes--start-perl "browser"
-			(diogenes--browse-interactively-script options passage)
-			#'diogenes--browser-filter)
-  (diogenes-browser-mode))
-
-
-
 ;;; Selectors
 (defun diogenes--select-author-num (options &optional author-regex)
   "Select one author from a diogenes database using a prompt."
