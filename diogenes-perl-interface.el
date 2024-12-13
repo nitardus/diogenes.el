@@ -117,7 +117,7 @@ If ref is non-nil, make the list into a hash- or an arrayref."
 
 
 ;;; Perl Runners
-(defun diogenes--start-perl (type code &optional filter)
+(defun diogenes--start-perl (type code &optional filter sentinel)
   "Starts and a perl process named diogenes-type.
 It is associated with a buffer with the same name, in asterisks."
   (when diogenes--debug-perl (diogenes--debug-perl code))
@@ -131,7 +131,8 @@ It is associated with a buffer with the same name, in asterisks."
 		  :coding  'utf-8
 		  :stderr  " *diogenes-warnings*"
 		  :noquery t
-		  :filter filter)
+		  :filter filter
+		  :sentinel sentinel)
     (pop-to-buffer buffer)))
 
 (defun diogenes--get-fresh-buffer (type)
@@ -166,7 +167,7 @@ Mode should be a maior mode derived from comint-mode."
 
 ;;; Perl Callers
 (defun diogenes--read-info (script)
-  (when diogenes--debug-perl (diogenes--debug-perl code))
+  (when diogenes--debug-perl (diogenes--debug-perl script))
   (read
    (with-temp-buffer
      (unless (zerop (call-process diogenes-perl-executable
@@ -273,9 +274,15 @@ sub parse_capture {
   my $out = '';
   $capture =~ s/([()\"])/\\\\$1/g;
   $capture =~ s/\\0\\n?//g;
-  my ($header, $body) = split /\\n\\n/, $capture, 2;
+  my @parts  = split /\\n\\n/, $capture;
+  my $header = shift @parts;
+  my $body   = pop @parts;
   my @header_lines = split /\\n/, $header;
-  my $last_header_line = pop @header_lines;
+  my $last_header_line = @parts 
+    ? shift @parts
+    : pop @header_lines;
+  die \"Too many parts in:\\n $capture\"
+    if @parts;
   my @levels = $last_header_line =~ /(\\S+)(?:,|$)/g;
   $out .= qq#(\"$last_header_line\" #;
   $out .= '(';
@@ -319,6 +326,8 @@ lists of the citations and whose values are the lines.")
 	   (diogenes--list->perl passage))
    "(undef, $end) = $b->browse_forward( $beg, $end, $author, $work );"
    "parse_capture;"
+   "# When type is `phi', read_phi_biblio resets $/, so we have to correct it"
+   "$/ = \"\\n\";"
    "while (<STDIN>) {"
    "  chomp;"
    "  if (s/^(\\d+)//) { $b->{browse_lines} = $1 - 1 }"

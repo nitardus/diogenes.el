@@ -6,8 +6,8 @@
 ;; Author: Michael Neidhart <mayhoth@gmail.com>
 ;; Keywords: classics, tools, philology, humanities
 ;;
-;; Version: 0.4
-;; Package-Requires: (cl-lib transient)
+;; Version: 0.5
+;; Package-Requires: (cl-lib thingatpt)
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,7 +37,8 @@
 ;;     - interface with transient
 ;; - Indexed (...)
 ;; - Browser Mode: Try to read reference at point
-;;     - FIXME: browse-forward and browse-backward broken in latin texts
+;;     - Readonly mode, view-mode key bindings
+;;     - Make keybindings work in Evil Mode
 ;; - Info Manual
 
 ;;; Code:
@@ -118,19 +119,19 @@ Please set it to the root directory of your Diogenes installation!")))
 					 "server"
 					 "Diogenes"
 					 "Base.pm"))
-  (error "Could not find a working Diogenes installation in %s"
+  (warn "Could not find a working Diogenes installation in %s"
 	 (diogenes--path)))
 
 (mapc (lambda (lang)
 	(unless (file-exists-p (diogenes--dict-file lang))
-	  (error "Could not find %s lexicon at %s."
+	  (warn "Could not find %s lexicon at %s."
 		 lang (diogenes--dict-file lang))))
       '("greek" "latin"))
 
 (mapc (lambda (file)
 	(unless (file-exists-p (file-name-concat (diogenes--perseus-path)
 						 file))
-	  (error "Could not find %s in %s. Did you build them?"
+	  (warn "Could not find %s in %s. Did you build them?"
 		 file (diogenes--perseus-path))))
       '("greek-analyses.txt" "greek-lemmata.txt"
 	"latin-analyses.txt" "latin-lemmata.txt"))
@@ -360,6 +361,18 @@ QUERY is interpreted as a regular expression which must match the forms."
   (interactive "sShow all forms of: ")
   (diogenes--show-all-forms lemma "latin"))
 
+;;;###autoload
+(defun diogenes-show-all-lemmata-greek (query)
+  "Show all Greek lemmata and forms that match QUERY."
+  (interactive "sShow all lemmata and their form matching: ")
+  (diogenes--show-all-lemmata (diogenes--greek-ensure-beta query) "greek"))
+
+;;;###autoload
+(defun diogenes-show-all-lemmata-latin (query)
+  "Show all Latin lemmata and forms that match QUERY."
+  (interactive "sShow all lemmata and their form matching: ")
+  (diogenes--show-all-lemmata query "latin"))
+
 
 ;;; UTILITIES
 ;;;###autoload
@@ -391,6 +404,15 @@ otherwise, prompt the user for input."
 					    nil nil nil nil
 					    (thing-at-point 'word t))))
 	     (message "%s" (diogenes--beta-to-utf8 str))))))
+
+;;;###autoload
+(defun diogenes-strip-diacritics (start end)
+  "Remove all diacritics in the active region."
+  (interactive "r")
+  (when (region-active-p)
+    (let ((stripped (diogenes--strip-diacritics (buffer-substring start end))))
+      (delete-region start end)
+      (insert stripped))))
 
 ;;;###autoload
 (defun diogenes-ol-to-ad (ol)

@@ -13,10 +13,32 @@
 (require 'cl-lib)
 (require 'seq)
 (require 'diogenes-lisp-utils)
+(require 'diogenes-utils)
 (require 'diogenes-perl-interface)
 
 (declare-function diogenes-perseus-action nil)
 
+;;;; --------------------------------------------------------------------
+;;;; UTILITIES
+;;;; --------------------------------------------------------------------
+(defsubst diogenes--perseus-ensure-utf8 (str lang)
+  (if (string= lang "greek")
+      (diogenes--perseus-beta-to-utf8 str)
+    (diogenes--replace-regexes-in-string str
+      ("_" "\N{COMBINING MACRON}")
+      ("\\^" "\N{COMBINING BREVE}"))))
+
+(defconst diogenes-perseus-action-map
+  (let ((map (make-sparse-keymap)))
+    (keymap-set map "RET" #'diogenes-perseus-action)
+    (keymap-set map "C-c C-c" #'diogenes-perseus-action)
+    (keymap-set map "<double-mouse-1>" #'diogenes-perseus-action)
+    (keymap-set map "<mouse-2>" #'diogenes-perseus-action)
+    map)
+  "Keymap that calls the perseus-action-command on certain
+words.")
+
+
 ;;;; --------------------------------------------------------------------
 ;;;; Low LEVEL INTERFACE
 ;;;; --------------------------------------------------------------------
@@ -227,17 +249,6 @@ the nearest entry and its offsets are returned."
 
 
 ;;;; --------------------------------------------------------------------
-;;;; UTILITIES
-;;;; --------------------------------------------------------------------
-(defsubst diogenes--perseus-ensure-utf8 (str lang)
-  (if (string= lang "greek")
-      (diogenes--perseus-beta-to-utf8 str)
-    (diogenes--replace-regexes-in-string str
-      ("_" "\N{COMBINING MACRON}")
-      ("\\^" "\N{COMBINING BREVE}"))))
-
-
-;;;; --------------------------------------------------------------------
 ;;;; PERSEUS DICTIONARY LOOKUP
 ;;;; --------------------------------------------------------------------
 
@@ -259,7 +270,7 @@ the nearest entry and its offsets are returned."
 (defun diogenes--dict-parse-xml (str begin end)
   "Try to parse a string containing the XML of a dictionary entry."
   (let ((parsed (with-temp-buffer (insert (diogenes--try-correct-xml str))
-				  (libxml-parse-xml-region))))
+				  (ignore-errors (car (xml-parse-region))))))
     (when parsed (diogenes--dict-process-elt parsed (list 'begin begin 'end end)))))
 
 (defun diogenes--dict-process-elt (elt properties)
@@ -311,16 +322,13 @@ diogenes--dict-xml-handlers-extra variable."
 			    " ")
 		    (cddr elt))
 	      nil)
-       (bibl (let ((map (make-sparse-keymap))
-		   (reference (cdr (assoc 'n (cadr elt)))))
-	       (keymap-set map "RET" #'diogenes-perseus-action)
-	       (keymap-set map "<double-mouse-1>" #'diogenes-perseus-action)
-	       (keymap-set map "<mouse-2>" #'diogenes-perseus-action)
+       (bibl (let ((reference (cdr (assoc 'n (cadr elt)))))
 	       (list 'font-lock-face 'link
-		     'keymap map
+		     'keymap diogenes-perseus-action-map
 		     'action 'bibl
 		     'bibl reference
-		     'help-echo reference)))
+		     'help-echo reference
+		     'rear-nonsticky t)))
        (quote (when (stringp (caddr elt))
 		(setf (caddr elt) (concat (caddr elt) " ")))
 	      nil)
@@ -556,14 +564,10 @@ Returns a list that diogenes--browse-work can be applied to."
 (defvar diogenes-lookup-mode-map
   (let ((map (nconc (make-sparse-keymap) text-mode-map)))
     ;; Overrides of movement keys
-    (keymap-set map "C-p"      #'diogenes-lookup-backward-line)
-    (keymap-set map "<up>"     #'diogenes-lookup-backward-line)
-    (keymap-set map "C-n"      #'diogenes-lookup-forward-line)
-    (keymap-set map "<down>"   #'diogenes-lookup-forward-line)
-    (keymap-set map "M-<"      #'diogenes-lookup-beginning-of-buffer)
-    (keymap-set map "C-<home>" #'diogenes-lookup-beginning-of-buffer)
-    (keymap-set map "M->"      #'diogenes-lookup-end-of-buffer)
-    (keymap-set map "C-<end>"  #'diogenes-lookup-end-of-buffer)
+    (keymap-set map "<remap> <previous-line>"       #'diogenes-lookup-backward-line)
+    (keymap-set map "<remap> <next-line>"           #'diogenes-lookup-forward-line)
+    (keymap-set map "<remap> <beginning-of-buffer>" #'diogenes-lookup-beginning-of-buffer)
+    (keymap-set map "<remap> <end-of-buffer>"       #'diogenes-lookup-end-of-buffer)
     (keymap-set map "C-c C-n"  #'diogenes-lookup-next)
     (keymap-set map "C-c C-p"  #'diogenes-lookup-previous)
     (keymap-set map "C-c C-c"  #'diogenes-perseus-action)
@@ -614,11 +618,25 @@ the file only at the first call."
 
 
 
-
-
 ;;; Analysis mode
+;; TODO: This should be made better
+;; - Inhibit editing the invisible text
+;; - org-mode-style  visibility cycling
+;; - etc.
+(defun diogenes-analysis-cycle (pos)
+  "On a heading in analysis mode, show or hide its contents."
+  (interactive "d")
+  (when-let ((level (get-char-property pos 'heading))
+	     (region-start (next-single-property-change pos level))
+	     (region-end (or (next-single-property-change region-start level)
+			     (point-max))))
+    (put-text-property region-start region-end 'invisible
+		       (if (get-text-property region-start 'invisible)
+			   nil t))))
+
 (defvar diogenes-analysis-mode-map
   (let ((map (nconc (make-sparse-keymap) text-mode-map)))
+    (keymap-set map "TAB"  #'diogenes-analysis-cycle)
     map)
   "Basic mode map for the Diogenes Analysis Mode.")
 
@@ -626,15 +644,14 @@ the file only at the first call."
   "Display analysis of search term.")
 
 
-;;; Parsing functions
 (defun diogenes--process-parse-result (encoded-str lang)
   "Split a bytestring as retrieved form the analyses file into a
 list of the corresponding entries. Each entry consists of the headword, the
 lemma, the lemma-number, translation and analysis."
   (cl-loop with str = (decode-coding-string encoded-str 'utf-8)
-	   for entry in (split-string (cadr (diogenes--split-once "\t" str))
+	   for entry in (split-string (cadr (diogenes--split-once "\t+" str))
 				      ;; Remove also trailing [\d+] after }
-				      "[{}]\\(?:\\[[0-9]+\\]\\)?"
+				      "[{}]\\(?:\\[[0-9]+\\]\\)*"
 				      t "\\s-")
 	   for (lemma-str translation analysis) = (split-string entry "\t" nil "\\s-")
 	   for (lemma-nr lemma-cat headword-and-lemma) = (split-string lemma-str)
@@ -645,6 +662,32 @@ lemma, the lemma-number, translation and analysis."
 			 translation
 			 analysis)))
 
+(defun diogenes--process-lemma (lemma lang)
+  "Process a lemma entry as returned from `diogenes--get-all-lemmata'.
+Returns a list with the form (lemma raw-lemma lemma-nr &rest analyses)"
+  (when lemma
+    (nconc (list (diogenes--perseus-ensure-utf8 (car lemma)
+						lang)
+		 (car lemma)
+		 (cadr lemma))
+	   (mapcar (lambda (e)
+		     (seq-let (form analysis)
+			 (diogenes--split-once "\\s-" e)
+		       (cons (diogenes--perseus-ensure-utf8 form lang)
+			     (with-temp-buffer
+			       (insert analysis)
+			       (goto-char (point-min))
+			       (cl-loop with substrings
+					for pos = (scan-sexps (point) 1)
+					if pos
+					collect (buffer-substring (1+ (point))
+								  (1- pos))
+					into substrings
+					else return substrings
+					do (goto-char (1+ pos)))))))
+		   (cddr lemma)))))
+
+;;; Parsing functions
 (defun diogenes--parse-word (word lang)
   "Search the ananlyses file of lang for word using a binary search.
 Returns the nearest hit to the query."
@@ -670,12 +713,10 @@ Returns the nearest hit to the query."
 	    (cdr result)))))
 
 (let ((cache (make-hash-table :test 'equal)))
- (defun diogenes--parse-all (query lang &optional filter ignore-case no-diacritics)
-   "Search all the forms in the analyses file.
-Return all the entries whose keys match query when filter is applied to them.
-Unless specified, filter defaults to string-equal."
-   (let* ((all-analyses (diogenes--get-all-analyses lang))
-	  (filter (or filter #'string-equal))
+ (defun diogenes--all-matches-in-hashtable (query hash-table filter ignore-case no-diacritics)
+   "Search for all entries in the table where querey matches the key via filter.
+Additionally, letter case and diacritics can be ignored."
+   (let* ((filter (or filter #'string-equal))
 	  (ignore-case (and ignore-case t))
 	  (no-diacritics (and no-diacritics t))
 	  (transformation (cond ((and ignore-case no-diacritics)
@@ -686,15 +727,14 @@ Unless specified, filter defaults to string-equal."
 		     query
 		   (funcall transformation query)))
 	  (hash (if (not (or ignore-case no-diacritics))
-		    all-analyses
-		  (or (gethash (list lang ignore-case no-diacritics) cache)
-		      (setf (gethash (list lang ignore-case no-diacritics) cache)
+		    hash-table
+		  (or (gethash (list hash-table ignore-case no-diacritics) cache)
+		      (setf (gethash (list hash-table ignore-case no-diacritics) cache)
 			    (cl-loop with hash =
 				     (make-hash-table :test 'equal :size 50000)
-				     for k being the hash-keys of all-analyses
+				     for k being the hash-keys of hash-table
 				     do (push k
-					      (gethash (funcall transformation k)
-						       hash))
+					      (gethash (funcall transformation k) hash))
 				     finally return hash)))))
 	  (results (if (eq filter #'string-equal)
 		       (when-let ((entry (gethash query hash)))
@@ -702,101 +742,47 @@ Unless specified, filter defaults to string-equal."
 		     (cl-loop for k being the hash-keys of hash
 			      using (hash-values v)
 			      when (funcall filter query k)
-			      collect (cons k v))))
-	  (entries (if (not (or ignore-case no-diacritics)) results
-		     (cl-loop for (q . keys) in results append
-			      (cl-loop for key in keys collect
-				       (cons key (gethash key all-analyses)))))))
+			      collect (cons k v)))))
+     (if (not (or ignore-case no-diacritics))
+	 results
+       (cl-loop for (q . keys) in results append
+		(cl-loop for key in keys collect
+			 (cons key (gethash key hash-table))))))))
+
+(defun diogenes--parse-all (query lang &optional filter ignore-case no-diacritics)
+   "Search all the forms in the analyses file.
+Return all the entries whose keys match query when filter is applied to them.
+Unless specified, filter defaults to string-equal."
+   (let ((entries (diogenes--all-matches-in-hashtable query
+						      (diogenes--get-all-analyses lang)
+						      filter
+						      ignore-case
+						      no-diacritics)))
      (when entries
        (mapcar (lambda (x) (cons (car x)
 			    (diogenes--process-parse-result (cdr x) lang)))
-	       entries)))))
+	       entries))))
 
-(defun diogenes--assign-parse-result-to-lemmata (parse-results)
-  "Loop through the result of `diogenes--process-parse-result',
-assigning the single results to their respective lemmata. Returns the lemmata as a list,
-where each lemma is itself a list consisting of the LEMMA-NR, the LEMMA-WORD, the TRANSLATION
-and the list on ANALYSES."
-  (cl-loop
-   with lemmata
-   for (headword lemma-word lemma-nr translation analysis) in parse-results
-   for existent-lemma = (assoc lemma-nr lemmata)
-   for entry = (cons headword analysis)
-   unless existent-lemma do (push (list lemma-nr
-					(or lemma-word
-					    headword)
-					(if (string-blank-p translation)
-					    "No translation available"
-					  translation)
-					(list entry))
-				  lemmata)
-   else do (push entry (cl-fourth existent-lemma))
-   finally return lemmata))
+(defun diogenes--get-all-forms (lemma lang)
+  "Get all attested forms of LEMMA in LANG.
+As there vould be several entries for the same lemma, this
+function returns a list of lists."
+  (mapcar (lambda (l) (diogenes--process-lemma l lang))
+	  (gethash lemma (or (diogenes--get-all-lemmata lang)
+			     (error "No lemmata retrieved for %s" lang)))))
 
-(defun diogenes--format-parse-results (query lang results)
-  "Process and format the results of `diogenes--process-parse-result'. 
-Besides the fontification, it also checks for duplicate lemma
-entries and orders them accordingly."
-  (let ((lemmata (diogenes--assign-parse-result-to-lemmata results))
-	(map (make-sparse-keymap)))
-    (keymap-set map "RET" #'diogenes-perseus-action)
-    (keymap-set map "<double-mouse-1>" #'diogenes-perseus-action)
-    (keymap-set map "<mouse-2>" #'diogenes-perseus-action)
-    (cl-loop
-     for lemma in lemmata
-     for (lemma-nr lemma-word translation entries) = lemma
-     concat (concat (propertize (string-trim
-				 (format "%s (%s)"
-					 (diogenes--perseus-ensure-utf8 lemma-word
-									lang)
-					 translation))
-				'font-lock-face 'link
-				'lemma-nr lemma-nr
-				'action 'lookup
-				'lemma lemma-word
-				'lang lang
-				'keymap map)
-		    " "
-		    (propertize "[Attested Forms]"
-				'font-lock-face 'diary
-				'action 'forms
-				'lemma lemma-word
-				'lang lang
-				'keymap map)
-		    "\n\n"
-		    (cl-loop for (headword . analysis) in entries
-			     concat (format "%-20s → %s\n"
-					    (diogenes--perseus-ensure-utf8 headword
-									   lang)
-					    analysis))
-		    "\n"))))
-
-(defun diogenes--add-parse-entry ()
-  "Get or create an Diogenes Analysis buffer, and begin a new entry."
-  (pop-to-buffer (get-buffer-create "Diogenes Analysis"))
-  (goto-char (point-max))
-  (unless (eq major-mode #'diogenes-analysis-mode)
-    (diogenes-analysis-mode))
-  (unless (diogenes--first-line-p)
-    (insert "\n")))
-
-(defun diogenes--format-lemma-for-completion (lemmata lang)
-  "Format a lemma list, as returned by `diogenes--assign-parse-result-to-lemmata'.
-The result of this function is an alist that should be in completing-read."
-  (cl-loop for lemma in lemmata
-	   for (nr word translation analyses-entries) = lemma
-	   for analyses = (mapcar #'cdr analyses-entries)
-	   collect (cons (propertize (format "%s (%s)"
-					     (diogenes--perseus-ensure-utf8 word
-									    lang)
-					     translation)
-				     'analyses analyses)
-			 word)))
-
-(defun diogenes--annotate-lemma-completion (lemma-string)
-  "Unpack the analyses from the analyses text property and concatenate them."
-  (concat "\t" (string-join (get-text-property 0 'analyses lemma-string)
-			    ", ")))
+(defun diogenes--query-all-lemmata (query lang &optional filter ignore-case no-diacritics)
+  "Search all lemmata in the lemmata file.
+Return all the entries whose keys match query when filter is applied to them.
+Unless specified, filter defaults to string-equal."
+  (let ((entries (diogenes--all-matches-in-hashtable query
+						     (diogenes--get-all-lemmata lang)
+						     filter
+						     ignore-case
+						     no-diacritics)))
+    (when entries
+      (mapcar (lambda (l) (diogenes--process-lemma (cadr l) lang))
+	      entries))))
 
 (defun diogenes--parse-and-lookup (word lang)
   "Try to parse a word by looking it up in the morphological files,
@@ -805,7 +791,7 @@ and show the entry for it in the lexica. Dispatcher function."
     (cond (exact-hit
 	   (let* ((lemmata (diogenes--assign-parse-result-to-lemmata analyses))
 		  (lemma
-		   (if (= 1 (length lemmata)) (cadar lemmata)
+		   (if (= 1 (length lemmata)) (caar lemmata)
 		     (let ((alist (diogenes--format-lemma-for-completion lemmata lang))
 			   (completion-extra-properties
 			    '(:annotation-function
@@ -815,11 +801,41 @@ and show the entry for it in the lexica. Dispatcher function."
 						    alist)
 				   alist))))))
 	     (cond (lemma (diogenes--lookup-dict lemma lang))
-		   (t (message "Trying to look %s up in the dictionaries!" word)
+		   (t (message "Trying to look %s up in the dictionaries!" wor
+			       d)
 		      (diogenes--lookup-dict word lang)))))
 	  (t (message "No results for %s, trying to look it up in the dictionaries!"
 		      word)
 	     (diogenes--lookup-dict word lang)))))
+
+
+
+(defun diogenes--annotate-lemma-completion (lemma-string)
+  "Unpack the analyses from the analyses text property and concatenate them."
+  (concat "\t" (string-join (get-text-property 0 'analyses lemma-string)
+			    ", ")))
+
+(defun diogenes--format-lemma-for-completion (lemmata lang)
+  "Format a lemma list, as returned by `diogenes--assign-parse-result-to-lemmata'.
+The result of this function is an alist that should be in completing-read."
+  (cl-loop for lemma in lemmata
+	   for (word nr translation analyses-entries) = lemma
+	   for analyses = (mapcar #'cdr analyses-entries)
+	   collect (cons (propertize (format "%s (%s)"
+					     (diogenes--perseus-ensure-utf8 word
+									    lang)
+					     translation)
+				     'analyses analyses)
+			 word)))
+
+(defun diogenes--add-parse-entry ()
+  "Get or create an Diogenes Analysis buffer, and begin a new entry."
+  (pop-to-buffer (get-buffer-create "*Diogenes Analysis*"))
+  (goto-char (point-max))
+  (unless (eq major-mode #'diogenes-analysis-mode)
+    (diogenes-analysis-mode))
+  (unless (diogenes--first-line-p)
+    (insert "\n")))
 
 (defun diogenes--parse-and-show-choose-filter (filter ignore-case no-diacritics)
   "Choose an approriate filter function for `diogenes--parse-and-show'."
@@ -856,6 +872,67 @@ and show the entry for it in the lexica. Dispatcher function."
 	   (ignore nil)
 	   (t t)))))
 
+
+(defun diogenes--assign-parse-result-to-lemmata (parse-results)
+  "Loop through the result of `diogenes--process-parse-result',
+assigning the single results to their respective lemmata. Returns the lemmata as a list,
+where each lemma is itself a list consisting of the LEMMA-NR, the LEMMA-WORD, the TRANSLATION
+and the list on ANALYSES."
+  (cl-loop
+   with lemmata
+   for (headword lemma-word lemma-nr translation analysis) in parse-results
+   for existent-lemma = (assoc lemma-word lemmata)
+   for entry = (cons headword analysis)
+   unless existent-lemma do (push (list (or lemma-word
+					    headword)
+					lemma-nr
+					(if (string-blank-p translation)
+					    "No translation available"
+					  translation)
+					(list entry))
+				  lemmata)
+   else do (push entry (cl-fourth existent-lemma))
+   finally return lemmata))
+
+(defun diogenes--format-parse-results (query lang results)
+  "Process and format the results of `diogenes--process-parse-result'. 
+Besides the fontification, it also checks for duplicate lemma
+entries and orders them accordingly."
+  (let ((lemmata (diogenes--assign-parse-result-to-lemmata results)))
+    (cl-loop
+     for lemma in lemmata
+     for (lemma-word lemma-nr translation entries) = lemma
+     concat (concat (propertize (string-trim
+				 (format "%s (%s)"
+					 (diogenes--perseus-ensure-utf8 lemma-word
+									lang)
+					 translation))
+				'font-lock-face 'link
+				'heading 'h3
+				'lemma-nr lemma-nr
+				'action 'lookup
+				'lemma lemma-word
+				'lang lang
+				'keymap diogenes-perseus-action-map
+				'rear-nonsticky t)
+		    " "
+		    (propertize "[Attested Forms]"
+				'font-lock-face 'diary
+				'action 'forms
+				'lemma lemma-word
+				'lang lang
+				'keymap diogenes-perseus-action-map
+				'rear-nonsticky t)
+		    "\n\n"
+		    (cl-loop for (headword . analysis) in entries
+			     concat (propertize
+				     (format "%-20s → %s\n"
+					     (diogenes--perseus-ensure-utf8 headword
+									    lang)
+					     analysis)
+				     'h3 t))
+		    "\n"))))
+
 (defun diogenes--parse-and-show (query lang &optional filter ignore-case no-diacritics)
   "Display all possible morphological analyses for query, with FILTER applied.
  Dispatcher function. IGNORE-CASE and NO-DIACRITICS should be either t or 'ignore; 
@@ -866,102 +943,109 @@ if nil, query interactively for their values"
       (unless results (error "No results for %s!" query))
       (diogenes--add-parse-entry)
       (insert (propertize (format "Results for %s:\n" query)
-			  'font-lock-face 'shr-h1))
-      (insert (propertize (format "(%s, %s, %s)\n"
+			  'font-lock-face 'shr-h1
+			  'heading 'h1))
+      (insert (propertize (format "(%s, %s, %s)\n\n"
 				  (if (eq filter #'string-equal)
 				      "No filter"
 				    (format "filtered by %s" filter))
 				  (if ignore-case "ignoring case"
 				    "case sensitive")
 				  (if no-diacritics "ignoring diacritics"
-				    "diacritics sensitive"))))
-      (newline)
+				    "diacritics sensitive"))
+			  'font-lock-face 'italic
+			  'h1 t))
       (cl-loop for (headword . analyses) in results
 	       do (insert
 		   (propertize (format "Form %s:\n\n"
 				       (if (string= lang "greek")
 					   (diogenes--perseus-beta-to-utf8 headword)
 					 headword))
-			       'font-lock-face 'success))
-	       do (insert (diogenes--format-parse-results headword lang analyses))))))
-
+			       'font-lock-face 'success
+			       'h1 t
+			       'heading 'h2))
+	       do (insert
+		   (propertize (diogenes--format-parse-results headword lang analyses)
+			       'h1 t
+			       'h2 t))))))
 
 
 ;;; Show all attested forms of lemma
-
-(defun diogenes--process-lemma (lemma lang)
-  "Process a lemma entry as returned from `diogenes--get-all-lemmata'.
-Returns a list with the form (lemma raw-lemma lemma-nr &rest analyses)"
-  (when lemma
-    (nconc (list (diogenes--perseus-ensure-utf8 (car lemma)
-						lang)
-		 (car lemma)
-		 (cadr lemma))
-	   (mapcar (lambda (e)
-		     (seq-let (form analysis)
-			 (diogenes--split-once "\\s-" e)
-		       (cons (diogenes--perseus-ensure-utf8 form lang)
-			     (with-temp-buffer
-			       (insert analysis)
-			       (goto-char (point-min))
-			       (cl-loop with substrings
-					for pos = (scan-sexps (point) 1)
-					if pos
-					collect (buffer-substring (1+ (point))
-								  (1- pos))
-					into substrings
-					else return substrings
-					do (goto-char (1+ pos)))))))
-		   (cddr lemma)))))
-
-(defun diogenes--get-all-forms (lemma lang)
-  "Get all attested forms of LEMMA in LANG.
-As there vould be several entries for the same lemma, this
-function returns a list of lists."
-  (mapcar (lambda (l) (diogenes--process-lemma l lang))
-	  (gethash lemma (or (diogenes--get-all-lemmata lang)
-			     (error "No lemmata retrieved for %s" lang)))))
-
 (defun diogenes--format-lemma-and-forms (lemma lang)
   "Format a LEMMA entry as returned by `diogenes--get-all-forms'."
-  (let ((map (make-sparse-keymap)))
-    (keymap-set map "RET" #'diogenes-perseus-action)
-    (keymap-set map "<double-mouse-1>" #'diogenes-perseus-action)
-    (keymap-set map "<mouse-2>" #'diogenes-perseus-action)
-    (concat (propertize (car lemma)
-			'action 'lookup
-			'lemma (cadr lemma)
-			'lang lang
-			'lemma-nr (caddr lemma)
-			'keymap map
-			'font-lock-face 'link)
-	    "\n\n"
-	    (cl-loop
-	     for (form . analyses) in (cdddr lemma)
-	     concat (concat (format "%-20s " form)
-			    (propertize (car analyses)
-					'font-lock-face 'italic)
-			    "\n"
-			    (cl-loop
-			     for a in (cdr analyses)
-			     concat (concat (make-string 21 ? )
-					    (propertize a
-							'font-lock-face 'italic)
-					    "\n"))))
-	    "\n")))
+  (concat (propertize (car lemma)
+		      'font-lock-face 'shr-h2
+		      'heading 'h2
+		      'action 'lookup
+		      'lemma (cadr lemma)
+		      'lang lang
+		      'lemma-nr (caddr lemma)
+		      'keymap diogenes-perseus-action-map
+		      'rear-nonsticky t)
+	  " \n"
+	  (cl-loop
+	   for (form . analyses) in (cdddr lemma)
+	   concat (propertize
+		   (concat (format "%-20s " form)
+			   (propertize (car analyses)
+				       'font-lock-face 'italic)
+			   "\n"
+			   (cl-loop
+			    for a in (cdr analyses)
+			    concat (concat (make-string 21 ? )
+					   (propertize a
+						       'font-lock-face 'italic)
+					   "\n")))
+		   'h2 t))
+	  "\n"))
 
 (defun diogenes--show-all-forms (lemma lang)
   "Show all attested forms of LEMMA in LANG."
   (let ((results (diogenes--get-all-forms lemma lang)))
     (unless results (error "No result for %s in %s" lemma lang))
-    (pop-to-buffer (get-buffer-create "Diogenes Forms"))
-    (text-mode)
+    (pop-to-buffer (get-buffer-create "*Diogenes Forms*"))
+    (diogenes-analysis-mode)
     (goto-char (point-max))
     (save-excursion
       (mapc (lambda (x)
 	      (insert (diogenes--format-lemma-and-forms x lang)))
-	    (reverse results)))
-    (newline)))
+	    (sort results (lambda (a b)
+		     (diogenes--sort-alphabetically-no-diacritics (car a)
+								  (car b))))))
+    t))
+
+;;; Show all lemmata that match query
+(defun diogenes--show-all-lemmata (query lang &optional filter ignore-case no-diacritics)
+  "Show all lemmata that match QUERY in lang, with FILTER applied.
+IGNORE-CASE and NO-DIACRITICS should be either t or 'ignore; 
+if nil, query interactively for their values"
+ (seq-let (filter ignore-case no-diacritics)
+      (diogenes--parse-and-show-choose-filter filter ignore-case no-diacritics)
+   (let ((results (diogenes--query-all-lemmata query lang filter ignore-case no-diacritics)))
+     (unless results (error "No results for lemma %s!" query))
+     (pop-to-buffer (get-buffer-create "*Diogenes Forms*"))
+     (diogenes-analysis-mode)
+     (goto-char (point-max))
+     (insert (propertize (format "Results for %s:\n" query)
+			 'font-lock-face 'shr-h1
+			 'heading h1))
+     (insert (propertize (format "(%s, %s, %s)\n\n"
+				 (if (eq filter #'string-equal)
+				     "No filter"
+				   (format "filtered by %s" filter))
+				 (if ignore-case "ignoring case"
+				   "case sensitive")
+				 (if no-diacritics "ignoring diacritics"
+				   "diacritics sensitive"))
+			 'font-lock-face 'italic
+			 'h1 t))
+     (save-excursion
+       (mapc (lambda (x)
+	       (insert (diogenes--format-lemma-and-forms x lang)))
+	     (sort results
+		   (lambda (a b)
+		     (diogenes--sort-alphabetically-no-diacritics (car a)
+								  (car b)))))))))
 
 
 ;;; Callback function

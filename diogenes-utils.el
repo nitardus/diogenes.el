@@ -163,8 +163,8 @@ breve signs."
   (save-match-data
     (let ((latin (string-match "\\cr" str))
 	  (greek (string-match "\\cg" str)))
-      (when (and latin greek)
-	(error "\"%s\" contains both Latin and Greek characters!" str))
+      ;; (when (and latin greek)
+      ;; 	(error "\"%s\" contains both Latin and Greek characters!" str))
       (if greek (diogenes--utf8-to-beta str)
 	str))))
 
@@ -175,15 +175,65 @@ breve signs."
   "Test for the category non-spacing-mark"
   (= 6 (aref unicode-category-table c)))
 
-
-;; Strip diacritics
-;;;###autoload
-(defun diogenes-strip-diacritics (str)
+(defun diogenes--strip-diacritics (str)
   "Remove all diacritics in a string."
   (cl-remove-if #'diogenes--unicode-non-spacing-mark-p
 		(string-glyph-decompose str)))
 
+(defsubst diogenes--sort-alphabetically-no-diacritics (a b)
+  (string-lessp (diogenes--strip-diacritics a)
+		(diogenes--strip-diacritics b)))
 
+;;; Post-processing of raw output
+;;;###autoload
+(defun diogenes-remove-hyphenation (&optional start end)
+  "Delete hyphenation in the active region, or until EOBP."
+  (interactive "r")
+  (save-excursion
+    (save-restriction
+      (when (region-active-p)
+	(narrow-to-region (progn (goto-char start)
+				 (beginning-of-line)
+				 (point))
+			  (progn (goto-char end)
+				 (end-of-line)
+				 (point)))
+	(goto-char (point-min)))
+      (cl-loop for pos-a =
+	       (and (re-search-forward "\\([^ <]+\\)-\\s-*$" (point-max) t)
+		    (cons (match-beginning 1)
+			  (match-end 1)))
+	       while pos-a
+	       for pos-b =
+	       (when-let ((next-line (and (zerop (forward-line))
+					  (thing-at-point 'line))))
+		 (when (cl-find-if (lambda (regexp) (string-match regexp next-line))
+				   '("^\\S-+\\s-\\{3,\\}\\(\\S-+\\)"
+				     "^\\s-\\{3,\\}\\(\\S-+\\)"
+				     "^\\(\\S-+\\)"))
+		   (cons (+ (point) (match-beginning 1))
+			 (+ (point) (match-end 1)))))
+	       while pos-b
+	       do (let ((word-rest (buffer-substring (car pos-b)
+						     (cdr pos-b))))
+		    (delete-region (car pos-b) (1+ (cdr pos-b)))
+		    (delete-blank-lines)
+		    (goto-char (cdr pos-a))
+		    (delete-char 1)
+		    (insert-and-inherit word-rest))))))
+
+;;;###autoload
+(defun diogenes-apostrophe (&optional start end)
+  "Replace all greek apostrophes with the typographical correct ῾."
+  (interactive "r")
+  (save-excursion
+    (save-restriction
+      (when (use-region-p)
+        (progn (narrow-to-region start end)
+               (goto-char (point-min))))
+      (replace-regexp "\\([[:nonascii:]]+\\)['’]" "\\1᾿"))))
+
+;;; Remove line-numbers
 
 ;;; Conversion between A.D. and Ol.
 (defun diogenes--ol-to-ad (ol)

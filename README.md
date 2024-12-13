@@ -1,5 +1,3 @@
-#+TITLE: diogenes.el
-
 Diogenes.el strives to be a complete interface to P. Heslin's
 Diogenes, allowing its users to browse and search the TLG and PHI
 Greek and Latin databases from within Emacs. In addition to this, it
@@ -18,76 +16,119 @@ Unlike the previous version of this package, it now uses custom Perl
 scripts to communicate with Diogenes' Perl API and tries to cover it
 entirely.
 
-* Installation
+
+# Installation
 
 Please make sure that you have a working installation of Diogenes.
-After that, clone this repository (e.g. into `~/.emacs./elisp`) and
+After that, clone this repository (e.g. into \`~/.emacs./elisp\`) and
 add it to your load-path:
 
-#+begin_src elisp
-  (add-to-list 'load-path (expand-file-name "~/.emacs.d/elisp/diogenes.el"))
-#+end_src
-	
+    (add-to-list 'load-path (expand-file-name "~/.emacs.d/elisp/diogenes.el"))
+
 Now require it and set the path to the diogenes-libary-path variable
 to the root of your Diogenes installation:
 
-#+begin_src elisp
-  (require 'diogenes)
-  (setq diogenes-library-path "/path/to/diogenes)
-#+end_src
+    (require 'diogenes)
+    (setq diogenes-library-path "/path/to/diogenes)
 
 Or, with use-package (with some handy key-bindings)
 
-#+begin_src elisp
-(use-package diogenes
-  :init
-  (diogenes-path "/path/to/diogenes")
-  :bind 
-  (("C-c d g b" . diogenes-browse-tlg)
-   ("C-c d g d" . diogenes-dump-tlg)
-   ("C-c d g s" . diogenes-search-tlg)
-   ("C-c d g l" . diogenes-lookup-greek)
-   ("C-c d g p" . diogenes-parse-and-lookup-greek)
-   ("C-c d g P" . diogenes-parse-greek)
-   ("C-c d l b" . diogenes-browse-phi)
-   ("C-c d l d" . diogenes-dump-phi)
-   ("C-c d l s" . diogenes-search-phi)
-   ("C-c d l l" . diogenes-lookup-latin)	 
-   ("C-c d l p" . diogenes-parse-and-lookup-latin)
-   ("C-c d l P" . diogenes-parse-latin)))
-#+end_src
+    (use-package diogenes
+      :init
+      (diogenes-path "/path/to/diogenes")
+      :bind 
+      (("C-c d g b" . diogenes-browse-tlg)
+       ("C-c d g d" . diogenes-dump-tlg)
+       ("C-c d g s" . diogenes-search-tlg)
+       ("C-c d g l" . diogenes-lookup-greek)
+       ("C-c d g p" . diogenes-parse-and-lookup-greek)
+       ("C-c d g P" . diogenes-parse-greek)
+       ("C-c d l b" . diogenes-browse-phi)
+       ("C-c d l d" . diogenes-dump-phi)
+       ("C-c d l s" . diogenes-search-phi)
+       ("C-c d l l" . diogenes-lookup-latin)	 
+       ("C-c d l p" . diogenes-parse-and-lookup-latin)
+       ("C-c d l P" . diogenes-parse-latin)))
 
-* Usage
+
+# Usage
+
 As there is a plethora of corpora that Diogenes can search and browse,
 diogenes.el defines for each of these copora in each of the following
 categories a specialised command. In order to avoid redundancy, the
 placeholder CORPUS will be used in command names that are defined for
 each of the following corpora:
 
-| Abbreviation | Full Name                |
-|--------------+--------------------------|
-| tlg          | Thesaurus Lingae Graecae |
-| phi          | PHI Latin Texts          |
-| ddp          | Duke Documentary Papyri  |
-| ins          | Classical Inscriptions   |
-| chr          | Christian Inscriptions   |
-| misc         | Miscellaneous PHI Texts  |
-| cop          | PHI Coptic Texts         |
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
-** Searching the Corpora
-The command ~M-x diogenes-search-CORPUS~ starts a search in a corpus.
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Abbreviation</th>
+<th scope="col" class="org-left">Full Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">tlg</td>
+<td class="org-left">Thesaurus Lingae Graecae</td>
+</tr>
+
+<tr>
+<td class="org-left">phi</td>
+<td class="org-left">PHI Latin Texts</td>
+</tr>
+
+<tr>
+<td class="org-left">ddp</td>
+<td class="org-left">Duke Documentary Papyri</td>
+</tr>
+
+<tr>
+<td class="org-left">ins</td>
+<td class="org-left">Classical Inscriptions</td>
+</tr>
+
+<tr>
+<td class="org-left">chr</td>
+<td class="org-left">Christian Inscriptions</td>
+</tr>
+
+<tr>
+<td class="org-left">misc</td>
+<td class="org-left">Miscellaneous PHI Texts</td>
+</tr>
+
+<tr>
+<td class="org-left">cop</td>
+<td class="org-left">PHI Coptic Texts</td>
+</tr>
+</tbody>
+</table>
+
+
+## Searching the Corpora
+
+The command `M-x diogenes-search-CORPUS` starts a search in a corpus.
 You can narrow down the scope of the search to individual authors. At
 the moment, the search result produced by Diogenes is inserted without
 any processing; this should however change soon.
 
-When used with a prefix argument (e.g. ~C-u M-x
-diogenes-search-CORPUS~), a more complex search query can be
+When used with a prefix argument (e.g. `C-u M-x
+diogenes-search-CORPUS`), a more complex search query can be
 constructed. Note, however, that this interface is perliminary and is
 likely to change in the near future.
 
-** Browsing the Corpora
+
+## Browsing the Corpora
+
 There are two sets of commands that display the text of a specific
-work. The first one, ~diogenes-dump-CORPUS~, just dumps itvin its
+work. The first one, `diogenes-dump-CORPUS`, just dumps itvin its
 entirety into a dedicated buffer without any post processing. This is
 primarily intended if you plan to use this to construct larger corpora
 of plain text files that should be used by other programs. Note,
@@ -99,26 +140,28 @@ rectangle command, or the removal of the hyphenations that interfere
 with searches. Some utilities for these tasks can be found in
 diogenes-legacy.el, but should be replaced in the near future.
 
-The second command, ~diogenes-browse-CORPUS~, opens an interactive
+The second command, `diogenes-browse-CORPUS`, opens an interactive
 browser at a specified location in the corpus. It post processes the
 output so that every line gets its own citation, and puts the citation
 even in its text properties so that it will be preserved even if it is
-copied elsewhere (use ~M-x describe-text-properties~ to inspect it).
-You can browse forward and backward with ~C-c C-n~
-(diogenes-browser-forward) and ~C-c C-p~ (diogenes-browser-backward),
+copied elsewhere (use `M-x describe-text-properties` to inspect it).
+You can browse forward and backward with `C-c C-n`
+(diogenes-browser-forward) and `C-c C-p` (diogenes-browser-backward),
 or simply by reaching the beginning or end of the buffer and using the
 arrow keys to go beyond the boundaries of the current buffer. 
 
 Additionally, there are commands in the browser mode that facilitate
-the post processing of the texts. ~diogenes-browser-toggle-citations-
-(bound to ~C-c C-t~) removes or reinserts all citations from the
-buffer. ~diogenes-browser-remove-hyphenation~ (bound to ~C-c C--~)
+the post processing of the texts. `diogenes-browser-toggle-citations-
+(bound to ~C-c C-t`) removes or reinserts all citations from the
+buffer. `diogenes-browser-remove-hyphenation` (bound to `C-c C--`)
 joins all hyphenated words at the line-ends, while
-~diogenes-browser-reinsert-hyphenations~ (~C-c C-+~) restores them to
+`diogenes-browser-reinsert-hyphenations` (`C-c C-+`) restores them to
 their original form.
 
-** Parsing and Dictionary Lookup
-The command ~diogenes-lookup-greek~ and ~diogenes-lookup-latin~ search the
+
+## Parsing and Dictionary Lookup
+
+The command `diogenes-lookup-greek` and `diogenes-lookup-latin` search the
 LSJ Greek Dictionary and the Lewis & Short Latin dictionary for the
 entered headword. If nothing can be found, the nearest result is
 displayed in Diogenes Lookup Mode. While only a subset of the TEI XML
@@ -126,29 +169,29 @@ tags is currently recognized and handled, this mode can display the
 most prominent markup of the files and, most importantly, the embedded
 citations that can be used to browse the texts in Browser Mode
 (activate them by either typing RETURN when they have the point or by
-double-clicking. The command ~diogenes-perseus-action~ (bound to
-~C-c C-c~) can also activate these links, but additionally tries to
+double-clicking. The command `diogenes-perseus-action` (bound to
+`C-c C-c`) can also activate these links, but additionally tries to
 parse and lookup every word that is marked either as Latin or Greek in
 the XML tags.
 
-The commands ~diogenes-parse-and-lookup-greek~ and
-~diogenes-parse-and-lookup-latin~ also do a dictionary lookup, but
+The commands `diogenes-parse-and-lookup-greek` and
+`diogenes-parse-and-lookup-latin` also do a dictionary lookup, but
 first try to analyse the form by using the morphological databases
 that come with Diogenes. When they fail to get a literal match (Greek
 diacritics included), they fall back to a simple dictionary lookup.
-This is also the function used by ~diogenes-perseus-action~.
+This is also the function used by `diogenes-perseus-action`.
 
-Last, there are the commands ~diogenes-parse-greek~ and
-~diogenes-parse-latin~. These commands are quite expensive (at any
+Last, there are the commands `diogenes-parse-greek` and
+`diogenes-parse-latin`. These commands are quite expensive (at any
 rate when executed the first time in a Emacs session) because they
 parse and load an entire analysis file into memory. This in turn
 allows the user to query these databases in a more general way. In
 this type of search, the queries do not have to be literal matches.
 Instead, thr user can supply a specialised function to do the lookup.
-The predefined functions are ~string=~ (literal matches),
-~string-prefix-p~ (matches at the beginning), ~string-suffix-p~
-(matches at the end), ~string-search~ (matches anywhere in the form),
-and ~string-match-p~ (using regular expressions), but any function, or
+The predefined functions are `string=` (literal matches),
+`string-prefix-p` (matches at the beginning), `string-suffix-p`
+(matches at the end), `string-search` (matches anywhere in the form),
+and `string-match-p` (using regular expressions), but any function, or
 even a custom lambda can be supplied. All these functions can match
 not the forms disregarding both the letter case and the diacritics.
 
@@ -157,10 +200,13 @@ in Beta Code. Note, however, that internally, all Greek is converted
 to Beta Code, so it may be in some cases more reliable to use Beta
 Code. Please inform me if you spot something that only works with Beta
 Code!)
-    
-** Utilitiles
+
+
+## Utilitiles
+
 At the moment, the package provides two utilites.
-~diogenes-beta-to-utf8~ and ~diogenes-utf8-to-beta~ can be used to convert
+`diogenes-beta-to-utf8` and `diogenes-utf8-to-beta` can be used to convert
 form and to beta code, both interactively in the minibuffer or in the
-current region, and ~diogenes-ol-to-ad~ and ~diogenes-ad-to-ol~ convert between 
+current region, and `diogenes-ol-to-ad` and `diogenes-ad-to-ol` convert between 
 dates in BC/AD and Olympiads.
+
