@@ -1,3 +1,5 @@
+https://github.com/user-attachments/assets/4b0297ae-f6ca-4064-b90b-f8dc320cf83a
+
 Diogenes.el strives to be a complete interface to P. Heslin's
 Diogenes, allowing its users to browse and search the TLG and PHI
 Greek and Latin databases from within Emacs. In addition to this, it
