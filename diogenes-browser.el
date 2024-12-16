@@ -107,7 +107,7 @@
    (save-excursion
      (goto-char (point-min))
      (let (pos-a)
-       (while (setq pos-a (and (re-search-forward "\\([^ <]+\\)-\\s-*$" nil t)
+       (while (setq pos-a (and (re-search-forward "\\([^ <-]+\\)-\\s-*$" nil t)
 			       (cons (match-beginning 1)
 				     (match-end 1))))
 	 (when-let* ((line-a (text-property-search-backward 'cit))

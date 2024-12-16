@@ -200,7 +200,7 @@ breve signs."
 				 (point)))
 	(goto-char (point-min)))
       (cl-loop for pos-a =
-	       (and (re-search-forward "\\([^ <]+\\)-\\s-*$" (point-max) t)
+	       (and (re-search-forward "\\([^ <-]+\\)-\\s-*$" (point-max) t)
 		    (cons (match-beginning 1)
 			  (match-end 1)))
 	       while pos-a

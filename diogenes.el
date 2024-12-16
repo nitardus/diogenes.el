@@ -429,7 +429,7 @@ otherwise, prompt the user for input."
 (defun diogenes-ad-to-ol (ad)
   "Converts A.D. to Ol."
   (interactive "nPlease enter a year: ")
-  (when (= ad 0)
+  (when (zerop ad)
     (error "There is no year 0!"))
   (let ((year (+ ad (if (< ad 0) 780 779))))
     (message "Ol. %d/%d" (/ year 4)
