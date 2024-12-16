@@ -6,7 +6,7 @@
 ;; Author: Michael Neidhart <mayhoth@gmail.com>
 ;; Keywords: classics, tools, philology, humanities
 ;;
-;; Version: 0.5
+;; Version: 0.51
 ;; Package-Requires: (cl-lib thingatpt)
 
 ;; This file is not part of GNU Emacs.

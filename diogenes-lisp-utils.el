@@ -95,6 +95,12 @@ Returns the resulting string."
   "Return non-nil if on the last line in buffer."
   (save-excursion (end-of-line) (eobp)))
 
+(defun diogenes-undo ()
+  "Undo also when buffer is readonly."
+  (interactive)
+  (let ((inhibit-read-only t))
+    (undo)))
+
 (provide 'diogenes-lisp-utils)
 
 ;;; diogenes-lisp-utils.el ends here

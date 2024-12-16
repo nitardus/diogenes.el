@@ -254,7 +254,8 @@ the nearest entry and its offsets are returned."
 
 ;;; Format and insert contents
 (defun diogenes--lookup-insert-and-format (str)
-  (let ((start (point)))
+  (let ((start (point))
+	(inhibit-read-only t))
     (insert str)
     (fill-region start (point))
     (recenter -1)
@@ -343,10 +344,12 @@ diogenes--dict-xml-handlers-extra variable."
     "Give the user the change to fix invalid XML in the dictionaries."
     (let* ((key (and (string-match "key=\"\\([^\"]+\\)\"" xml)
 		     (match-string 1 xml)))
-	   (id (or key (cl-incf numeric-id))))
+	   (id (or key (cl-incf numeric-id)))
+	   (inhibit-read-only t))
       (message "Invalid xml in entry: Showing entry!")
       (insert (propertize (diogenes--fontify-nxml xml)
 			  'invalid-xml id
+			  'inhibit-read-only t
 			  'begin start
 			  'end end))
       (setq diogenes--lookup-buffer buffer
@@ -363,12 +366,14 @@ diogenes--dict-xml-handlers-extra variable."
 	 (line-end (get-text-property (point) 'end))
 	 (prop-boundaries (diogenes--get-text-prop-boundaries 'invalid-xml))
 	 (xml (apply #'buffer-substring prop-boundaries))
-	 (parsed (diogenes--dict-parse-xml xml line-start line-end)))
+	 (parsed (diogenes--dict-parse-xml xml line-start line-end))
+	 (inhibit-read-only t))
     (apply #'delete-region prop-boundaries)
     (if parsed
 	(diogenes--lookup-insert-and-format parsed)
       (insert (propertize (diogenes--fontify-nxml xml)
 			  'invalid-xml id
+			  'inhibit-read-only t
 			  'begin line-start
 			  'end line-end)))))
 
@@ -436,7 +441,8 @@ properties."
 	(prop-end (prop-match-end invalid-xml))
 	(line-start (get-text-property prop-start 'begin))
 	(line-end (get-text-property prop-start 'end))
-	(parsed (diogenes--dict-parse-xml (buffer-string) line-start line-end)))
+	(parsed (diogenes--dict-parse-xml (buffer-string) line-start line-end))
+	(inhibit-read-only t))
     (cond (parsed (kill-buffer xml-buffer)
 		  (pop-to-buffer lookup-buffer)
 		  (delete-region prop-start prop-end)
@@ -487,7 +493,8 @@ while KEY-FN must return the key."
 			       (1+ diogenes--lookup-bufend))
     (unless xml-bytes (error "No further entries!"))
     (let* ((xml (decode-coding-string xml-bytes 'utf-8))
-	   (formatted (diogenes--dict-parse-xml xml start end)))
+	   (formatted (diogenes--dict-parse-xml xml start end))
+	   (inhibit-read-only t))
       (setq diogenes--lookup-bufend end)
       (goto-char (point-max))
       (diogenes--lookup-print-separator)
@@ -505,7 +512,8 @@ while KEY-FN must return the key."
 			       (1- diogenes--lookup-bufstart))
     (unless xml-bytes (error "No further entries!"))
     (let* ((xml (decode-coding-string xml-bytes 'utf-8))
-	   (formatted (diogenes--dict-parse-xml xml start end)))
+	   (formatted (diogenes--dict-parse-xml xml start end))
+	   (inhibit-read-only t))
       (setq diogenes--lookup-bufstart start)
       (goto-char (point-min))
       (diogenes--lookup-print-separator)
@@ -579,7 +587,8 @@ Returns a list that diogenes--browse-work can be applied to."
   (make-local-variable 'diogenes--lookup-file)
   (make-local-variable 'diogenes--lookup-bufstart)
   (make-local-variable 'diogenes--lookup-bufend)
-  (make-local-variable 'diogenes--lookup-lang))
+  (make-local-variable 'diogenes--lookup-lang)
+  (setq buffer-read-only t))
 
 
 ;;;; --------------------------------------------------------------------
