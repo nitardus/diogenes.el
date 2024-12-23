@@ -31,16 +31,20 @@
   (diogenes--send-cmd-to-browser (number-to-string height)))
 
 (defun diogenes-browser-forward ()
-  (interactive)
+  "Load the next page from the Diogenes browser."
+  (interactive "p")
   (setq diogenes--browser-backwards nil)
+  (goto-char (point-max))
   (diogenes--send-cmd-to-browser
    (concat (number-to-string (- (floor (window-screen-lines))
 				next-screen-context-lines))
 	   "n")))
 
 (defun diogenes-browser-backward ()
-  (interactive)
+  "Load the previous page from the Diogenes browser."
+  (interactive "p")
   (setq diogenes--browser-backwards t)
+  (goto-char (point-min))
   (diogenes--send-cmd-to-browser
    (concat (number-to-string (- (floor (window-screen-lines))
 				next-screen-context-lines))
@@ -169,9 +173,10 @@
 (defun diogenes-browser-lookup ()
   "Lookup word at point."
   (interactive)
-  (funcall #'diogenes-parse-and-lookup-greek
-	 (replace-regexp-in-string "[^[:alpha:]]" ""
-				   (thing-at-point 'word))))
+  (funcall (intern (concat "diogenes-parse-and-lookup-"
+			   diogenes--browser-language))
+	   (replace-regexp-in-string "[^[:alpha:]]" ""
+				     (thing-at-point 'word))))
 
 ;;; Browser Mode
 (defvar diogenes-browser-mode-map
@@ -181,6 +186,7 @@
     (keymap-set map "<remap> <next-line>"           #'diogenes-browser-forward-line)
     (keymap-set map "<remap> <beginning-of-buffer>" #'diogenes-browser-beginning-of-buffer)
     (keymap-set map "<remap> <end-of-buffer>"       #'diogenes-browser-end-of-buffer)
+    (keymap-set map "q" #'quit-window)
     (keymap-set map "C-c C-n"  #'diogenes-browser-forward)
     (keymap-set map "C-c C-p"  #'diogenes-browser-backward)
     ;; Actions

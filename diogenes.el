@@ -7,7 +7,7 @@
 ;; Keywords: classics, tools, philology, humanities
 ;;
 ;; Version: 0.51
-;; Package-Requires: (cl-lib thingatpt)
+;; Package-Requires: (cl-lib thingatpt pcre2el)
 
 ;; This file is not part of GNU Emacs.
 
@@ -46,6 +46,7 @@
 (require 'cl-lib)
 (require 'thingatpt)
 (require 'seq)
+(require 'pcre2el)
 
 (require 'diogenes-lisp-utils)
 (require 'diogenes-utils)

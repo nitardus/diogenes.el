@@ -99,8 +99,8 @@ If file-length is not supplied, it will be determined."
 ;; Sort functions
 ;; ASCII
 (defun diogenes--ascii-sort-function (a b)
-  (let ((word-a (downcase a))
-	(word-b (downcase b)))
+  (let ((word-a (downcase (diogenes--ascii-alpha-only a)))
+	(word-b (downcase (diogenes--ascii-alpha-only b))))
     (cond ((string-greaterp word-a word-b) 'a)
 	  ((string-greaterp word-b word-a) 'b)
 	  (t nil))))
@@ -294,7 +294,7 @@ of the active element."
   '(
     ;;(author . '(font-lock-face bold))
     ;;(title . '(font-lock-face italic))
-    (i . (font-lock-face diary))
+    (i . (font-lock-face warning))
     (b . (font-lock-face bold)))
   "An alist of property lists to be applied to a simple tag in a dictionary.")
 
@@ -483,9 +483,10 @@ while KEY-FN must return the key."
 			 #'diogenes--ascii-sort-function
 			 #'diogenes--xml-key-fn))))
 
-(defun diogenes-lookup-next ()
-  "Find and show the next entry in the active dictionary."
-  (interactive)
+(defun diogenes-lookup-next (&optional n)
+  "Find and show the next entry in the active dictionary.
+When called with a numerical prefix, show the next N entries."
+  (interactive "p")
   (unless (eq major-mode 'diogenes-lookup-mode)
     (error "Not in Diogenes Lookup Mode!"))
   (seq-let (xml-bytes start end)
@@ -500,11 +501,13 @@ while KEY-FN must return the key."
       (diogenes--lookup-print-separator)
       (if formatted
 	  (diogenes--lookup-insert-and-format formatted)
-	(diogenes--lookup-insert-xml xml start end (current-buffer))))))
+	(diogenes--lookup-insert-xml xml start end (current-buffer)))
+      (when (and n (> n 1)) (diogenes-lookup-next (1- n))))))
 
-(defun diogenes-lookup-previous ()
-  "Find and show the previous entry in the active dictionary."
-  (interactive)
+(defun diogenes-lookup-previous (&optional n)
+  "Find and show the previous entry in the active dictionary.
+When called with a numerical prefix, show the previous N entries."
+  (interactive "p")
   (unless (eq major-mode 'diogenes-lookup-mode)
     (error "Not in Diogenes Lookup Mode!"))
   (seq-let (xml-bytes start end)
@@ -522,7 +525,8 @@ while KEY-FN must return the key."
 	  (diogenes--lookup-insert-and-format formatted)
 	(diogenes--lookup-insert-xml xml start end (current-buffer)))
       
-      (goto-char (point-min)))))
+      (goto-char (point-min))
+      (when (and n (> n 1)) (diogenes-lookup-previous (1- n))))))
 
 
 
@@ -926,7 +930,7 @@ entries and orders them accordingly."
 				'rear-nonsticky t)
 		    " "
 		    (propertize "[Attested Forms]"
-				'font-lock-face 'diary
+				'font-lock-face 'warning
 				'action 'forms
 				'lemma lemma-word
 				'lang lang

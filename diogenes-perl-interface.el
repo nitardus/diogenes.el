@@ -204,20 +204,53 @@ Mode should be a maior mode derived from comint-mode."
 
 ;;; Perl scripts
 (defun diogenes--search-script (option-plist &optional authors-plist)
-  "Return a perl script that executes a diogenes search.
+  "Return a perl script that executes a Diogenes search.
 
 option-plist is an plist that will be converted into a perl hash
 accepted by the Diogenes::Search constructor. authors-plist, when supplied,
-are the arguments for the select_authors method."
+contains the arguments for the select_authors method."
   (plist-put option-plist :chunk-size "inf")
   (diogenes--perl-script
    "use Diogenes::Search;"
+   "use Diogenes::Indexed;"
+   "use utf8;"
    (format "my $q = Diogenes::Search->new(%s);"
 	   (diogenes--list->perl option-plist))
    (when authors-plist
      (format "$q->select_authors(%s);"
 	     (diogenes--list->perl authors-plist)))
    "$q->do_search"))
+
+(defun diogenes--indexed-search-script (option-plist word-list &optional authors-plist)
+  "Return a perl script that executes an indexed Diogenes search.
+
+option-plist is an plist that will be converted into a perl hash
+accepted by the Diogenes::Indexed constructor, wordlist is the list of words that will be searched.
+authors-plist, when supplied, contains the arguments for the select_authors method."
+  (plist-put option-plist :chunk-size "inf")
+  (diogenes--perl-script
+   "use Diogenes::Search;"
+   "use Diogenes::Indexed;"
+   "use utf8;"
+   (format "my $q = Diogenes::Indexed->new(%s);"
+	   (diogenes--list->perl option-plist))
+   (format "my @words = (%s);"
+	   (diogenes--list->perl word-list))
+   
+   (when authors-plist
+     (format "$q->select_authors(%s);"
+	     (diogenes--list->perl authors-plist)))
+   "my %seen;"
+   "for my $uc ( @words ) {"
+   "  $uc =~ tr/a-z/A-Z/;"
+   "  next if $seen{$uc};"
+   "  $q->{input_raw} = 1;"
+   "  my ($ref, @wlist) = $q->read_index( $uc =~ s/[^A-Z]//gr );"
+   "  warn qq{$uc is not in the word-list!\n} unless exists $ref->{$uc};"
+   "  $seen{$_}++ for @wlist;"
+   "}"
+   "$q->do_search( map [$_], @words );"))
+
 
 (defun diogenes--list-authors-script (option-plist &optional author-regex)
   "Return a perl script that returns a list of all authors in a corpus."
