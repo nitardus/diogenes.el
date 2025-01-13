@@ -40,7 +40,7 @@ It can then be edited, saved to file and called directly for better testing."
       (pop-to-buffer out-buffer))))
 
 
-
+
 ;;; Low Level Perl Interface
 (defmacro diogenes--perl-script (&rest lines)
   `(string-join (list (format "use v%.2f;" diogenes-perl-min-version)
@@ -53,14 +53,16 @@ It can then be edited, saved to file and called directly for better testing."
 (defconst diogenes--perl-to-lisp-sub
   "sub perl_to_lisp {
   my $elt = shift;
+  my $arr = shift;  # lisp arrays
   unless ($elt) {}
   elsif (ref $elt eq 'ARRAY') {
-    my $str = join ' ', map { perl_to_lisp($_) } @$elt;
-    '('. $str . ')';
+    my $str = join ' ', map { perl_to_lisp($_, $arr) } @$elt;
+    if ($arr) { '['. $str . ']' }
+    else      { '('. $str . ')' }
   }
   elsif (ref $elt eq 'HASH') {
     my $str = join ' ',
-      map { ':' . $_ . perl_to_lisp($elt->{$_}) } sort keys %$elt;
+      map { ':' . $_ . perl_to_lisp($elt->{$_}, $arr) } sort keys %$elt;
     '(' . $str . ')';
   }
   elsif (ref $elt) {
@@ -84,28 +86,26 @@ An ordinary list becomes a arrayref, a plist with keywords at odd
 positions an arrayref."
   (cl-typecase elt
     (list (diogenes--list->perl elt t))
-    (keyword (replace-regexp-in-string "-" "_"
-				       (diogenes--keyword->string elt)))
+    (vector (diogenes--list->perl elt t))
+    (keyword (prin1-to-string
+	      (replace-regexp-in-string "-" "_"
+					(diogenes--keyword->string elt))))
     (t (prin1-to-string elt))))
 
 (defun diogenes--list->perl (lst &optional ref)
-  "Transform a lisp list into a perl list.
+  "Transform a lisp list (or vector) into a perl list/array.
 
 If ref is non-nil, make the list into a hash- or an arrayref."
-  (unless (listp lst) (error "Not a list: %s" lst))
+  (when (vectorp lst)
+    (setq lst (mapcar #'identity lst)))
+  (unless (or (listp lst))
+    (error "Not a list: %s" lst))
   (if (and lst
 	   (diogenes--plist-keyword-keys-p lst))
       (format (if ref "{ %s }" "%s")
 	      (diogenes--plist->perlpairs lst))
     (format (if ref "[ %s ]" "%s")
 	    (mapconcat #'diogenes--elt->perl lst ", "))))
-
-(defun diogenes--plist-keyword-keys-p (plist)
-  "Check if all keys of a plist are keywords"
-  (cond ((not (plistp plist)) nil)
-	((cdr plist) (and (keywordp (car plist))
-			  (diogenes--plist-keyword-keys-p (cddr plist))))
-	(t t)))
 
 (defun diogenes--plist->perlpairs (plist)
   (when plist
@@ -116,6 +116,7 @@ If ref is non-nil, make the list into a hash- or an arrayref."
 	      (when next-pair (concat ", " next-pair))))))
 
 
+
 ;;; Perl Runners
 (defun diogenes--start-perl (type code &optional filter sentinel)
   "Starts and a perl process named diogenes-type.
@@ -165,6 +166,7 @@ Mode should be a maior mode derived from comint-mode."
     (funcall mode)))
 
 
+
 ;;; Perl Callers
 (defun diogenes--read-info (script)
   (when diogenes--debug-perl (diogenes--debug-perl script))
@@ -200,8 +202,15 @@ Mode should be a maior mode derived from comint-mode."
 (defun diogenes--get-tlg-categories ()
   (diogenes--get-info #'diogenes--get-tlg-categories-script))
 
+(defun diogenes--get-wordlist-matches (options pattern)
+  (diogenes--get-info #'diogenes--get-wordlist-matches-script
+		      options pattern))
+
+(defun diogenes--get-filter-file ()
+  (diogenes--get-info #'diogenes--get-filter-file-script))
 
 
+
 ;;; Perl scripts
 (defun diogenes--search-script (option-plist &optional authors-plist)
   "Return a perl script that executes a Diogenes search.
@@ -236,7 +245,6 @@ authors-plist, when supplied, contains the arguments for the select_authors meth
 	   (diogenes--list->perl option-plist))
    (format "my @words = (%s);"
 	   (diogenes--list->perl word-list))
-   
    (when authors-plist
      (format "$q->select_authors(%s);"
 	     (diogenes--list->perl authors-plist)))
@@ -245,8 +253,8 @@ authors-plist, when supplied, contains the arguments for the select_authors meth
    "  $uc =~ tr/a-z/A-Z/;"
    "  next if $seen{$uc};"
    "  $q->{input_raw} = 1;"
-   "  my ($ref, @wlist) = $q->read_index( $uc =~ s/[^A-Z]//gr );"
-   "  warn qq{$uc is not in the word-list!\n} unless exists $ref->{$uc};"
+   "  my ($ref, @wlist) = $q->read_index( $uc =~ s/[^ A-Z]//gr );"
+   "  warn qq{$uc is not in the word-list!\\n} unless exists $ref->{$uc};"
    "  $seen{$_}++ for @wlist;"
    "}"
    "$q->do_search( map [$_], @words );"))
@@ -262,7 +270,8 @@ authors-plist, when supplied, contains the arguments for the select_authors meth
    "print perl_to_lisp([ map {[ $a{$_}, $_ ]} sort keys %a ]);"))
 
 (defun diogenes--list-works-script (option-plist author)
-  "Return a perl script that returns a list of all works of an author in a corpus."
+  "Return a perl script that returns a list of all works of an
+author in a corpus."
   (diogenes--perl-script
    "use Diogenes::Browser;"
    diogenes--perl-to-lisp-sub
@@ -287,6 +296,52 @@ authors-plist, when supplied, contains the arguments for the select_authors meth
    "my $q = Diogenes::Search->new(type => 'tlg');"
    "my $c = $q->select_authors(get_tlg_categories => 1);"
    "print perl_to_lisp($c);"))
+
+(defun diogenes--define-corpus-script (option-plist authors-plist)
+  "Return a perl script that returns a corpus matching authors-plist."
+  (diogenes--perl-script
+   "use Diogenes::Base;"
+   diogenes--perl-to-lisp-sub
+   (format "my $q = Diogenes::Base->new(%s);"
+	   (diogenes--list->perl option-plist))
+   (format "() = $q->select_authors(%s);"
+	     (diogenes--list->perl authors-plist))
+   "my %auths = %{ $q->{req_authors} };"
+   "my %wks   = %{ $q->{req_auth_wk} };"
+   "if (%wks) {"
+   "  $auths{$_} = [ sort keys %{ $wks{$_} } ]"
+   "    for keys %wks;"
+   "  print perl_to_lisp \\%auths, 1;"
+   "}"
+   "elsif (%auths) {"
+   "  print perl_to_lisp $q->{prev_list}, 1;"
+   "}"
+   "else {"
+   "  print 'nil';"
+   "}"))
+
+(defun diogenes--get-filter-file-script (&rest junk)
+  "Returns a perl script that prints the path of the file where the user defined 
+corpora are saved."
+  (diogenes--perl-script
+   "use Diogenes::Base;"
+   "print '\"', Diogenes::Base->new()->{filter_file}, '\"';"))
+
+(defun diogenes--get-wordlist-matches-script (option-plist pattern)
+  "Return a perl script that returns a list of all word that match
+PATTERN in a wordlist."
+  (diogenes--perl-script
+   "use Diogenes::Search;"
+   "use Diogenes::Indexed;"
+   diogenes--perl-to-lisp-sub
+   (format "my $q = Diogenes::Indexed->new(%s);"
+	   (diogenes--list->perl option-plist))
+   (format "my $pat = \"%s\";" pattern)
+   "$pat =~ tr/a-z/A-Z/;"
+   "$pat =~ s/[^ A-Z]//g;"
+   "$q->{input_raw} = 1;"
+   "my ($ref, @wlist) = $q->read_index($pat);"
+   "print perl_to_lisp( \\@wlist );"))
 
 (defun diogenes--browser-script (option-plist passage)
   "Return a perl script that opens a work with the Diogenes Browser."
@@ -374,7 +429,6 @@ lists of the citations and whose values are the lines.")
    "    parse_capture;"
    "  }"
    "}"))
-
 
 
 (provide 'diogenes-perl-interface)

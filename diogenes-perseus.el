@@ -364,7 +364,8 @@ diogenes--dict-xml-handlers-extra variable."
 	         (error "No XML here to validate!")))
 	 (line-start (get-text-property (point) 'begin))
 	 (line-end (get-text-property (point) 'end))
-	 (prop-boundaries (diogenes--get-text-prop-boundaries 'invalid-xml))
+	 (prop-boundaries (diogenes--get-text-prop-boundaries (point)
+							      'invalid-xml))
 	 (xml (apply #'buffer-substring prop-boundaries))
 	 (parsed (diogenes--dict-parse-xml xml line-start line-end))
 	 (inhibit-read-only t))
@@ -410,7 +411,8 @@ properties."
   (interactive)
   (let* ((id (or (get-text-property (point) 'invalid-xml)
 	         (error "No corrupt XML at point to edit!")))
-	 (prop-boundaries (diogenes--get-text-prop-boundaries 'invalid-xml))
+	 (prop-boundaries (diogenes--get-text-prop-boundaries (point)
+							      'invalid-xml))
 	 (xml (apply #'buffer-substring prop-boundaries))
 	 (lookup-buffer (current-buffer))
 	 (xml-buffer (diogenes--get-fresh-buffer "xml"))
@@ -423,14 +425,15 @@ properties."
 			'id id
 			'prop-boundaries prop-boundaries
 			'keymap map))
-    (rng-first-error)))
+    (goto-char (point-min))))
 
 (defun diogenes--xml-submit ()
   "Try to submit a fixed XML dictionary entry."
   (interactive)
   (let* ((id (or (get-text-property (point) 'invalid-xml)
 	         (error "No corrupt XML at point to edit!")))
-	(prop-boundaries (diogenes--get-text-prop-boundaries 'invalid-xml))
+	(prop-boundaries (diogenes--get-text-prop-boundaries (point)
+							     'invalid-xml))
 	(lookup-buffer (get-text-property (point) 'lookup-buffer))
 	(xml-buffer (current-buffer))
 	(invalid-xml (with-current-buffer lookup-buffer
@@ -801,45 +804,41 @@ Unless specified, filter defaults to string-equal."
   "Try to parse a word by looking it up in the morphological files,
 and show the entry for it in the lexica. Dispatcher function."
   (seq-let (analyses start stop exact-hit) (diogenes--parse-word word lang)
-    (cond (exact-hit
-	   (let* ((lemmata (diogenes--assign-parse-result-to-lemmata analyses))
-		  (lemma
-		   (if (= 1 (length lemmata)) (caar lemmata)
-		     (let ((alist (diogenes--format-lemma-for-completion lemmata lang))
-			   (completion-extra-properties
-			    '(:annotation-function
-			      diogenes--annotate-lemma-completion)))
-		       (cdr (assoc (completing-read (format "Choose a lemma for %s: "
-							    word)
-						    alist)
-				   alist))))))
-	     (cond (lemma (diogenes--lookup-dict lemma lang))
-		   (t (message "Trying to look %s up in the dictionaries!" wor
-			       d)
-		      (diogenes--lookup-dict word lang)))))
-	  (t (message "No results for %s, trying to look it up in the dictionaries!"
-		      word)
-	     (diogenes--lookup-dict word lang)))))
-
-
-
-(defun diogenes--annotate-lemma-completion (lemma-string)
-  "Unpack the analyses from the analyses text property and concatenate them."
-  (concat "\t" (string-join (get-text-property 0 'analyses lemma-string)
-			    ", ")))
-
-(defun diogenes--format-lemma-for-completion (lemmata lang)
-  "Format a lemma list, as returned by `diogenes--assign-parse-result-to-lemmata'.
-The result of this function is an alist that should be in completing-read."
-  (cl-loop for lemma in lemmata
-	   for (word nr translation analyses-entries) = lemma
-	   for analyses = (mapcar #'cdr analyses-entries)
-	   collect (cons (propertize (format "%s (%s)"
-					     (diogenes--perseus-ensure-utf8 word
-									    lang)
-					     translation)
-				     'analyses analyses)
-			 word)))
+    (cond
+     (exact-hit
+      (let* ((lemmata (diogenes--assign-parse-result-to-lemmata analyses))
+	     (lemma
+	      (if (= 1 (length lemmata))
+		  (caar lemmata)
+		(let ((alist
+		       (cl-loop
+			for lemma in lemmata
+			for (word nr translation analyses-entries) = lemma
+			for analyses = (mapcar #'cdr analyses-entries)
+			collect
+			(list (format "%s (%s)"
+				      (diogenes--perseus-ensure-utf8
+				       word lang)
+				      translation)
+			      word
+			      (concat "\t"
+				      (string-join analyses ",")))))
+		      (completion-extra-properties
+		       '(:annotation-function
+			 (lambda (s)
+			   (caddr (assoc s minibuffer-completion-table))))))
+		  (cadr (assoc (completing-read
+				(format "Choose a lemma for %s: "
+					word)
+				alist)
+			       alist))))))
+	(cond (lemma (diogenes--lookup-dict lemma lang))
+	      (t (message "Trying to look %s up in the dictionaries!" wor
+			  d)
+		 (diogenes--lookup-dict word lang)))))
+     (t (message "No results for %s, trying to look it up in the dictionaries!"
+		 word)
+	(diogenes--lookup-dict word lang)))))
 
 (defun diogenes--add-parse-entry ()
   "Get or create an Diogenes Analysis buffer, and begin a new entry."
@@ -1041,7 +1040,7 @@ if nil, query interactively for their values"
      (goto-char (point-max))
      (insert (propertize (format "Results for %s:\n" query)
 			 'font-lock-face 'shr-h1
-			 'heading h1))
+			 'heading 'shr-h1))
      (insert (propertize (format "(%s, %s, %s)\n\n"
 				 (if (eq filter #'string-equal)
 				     "No filter"

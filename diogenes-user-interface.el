@@ -15,6 +15,16 @@
 (require 'diogenes-lisp-utils)
 
 ;;; Selectors
+(defun diogenes--select-database ()
+  "Select a Diogenes database using a prompt."
+  (let ((completion-extra-properties
+	 '(:annotation-function
+	   (lambda (s)
+	     (concat "\t"
+		     (cdr (assoc s minibuffer-completion-table)))))))
+    (completing-read "Please choose search corpus: "
+		     diogenes--corpora)))
+
 (defun diogenes--select-author-num (options &optional author-regex)
   "Select one author from a diogenes database using a prompt."
   (let ((author-list (diogenes--get-author-list options author-regex)))
@@ -46,9 +56,9 @@
 ;;; TODO: Selection with multiple regexes
 (defun diogenes--select-author-nums (options &optional author-regex)
   "Select a list of authors from a diogenes database using a prompt.
-Returns a list."
-  (cl-loop collect (diogenes--select-author-num options author-regex)
-	   while (y-or-n-p "Add another author?")))
+Returns an array."
+  (vconcat (cl-loop collect (diogenes--select-author-num options author-regex)
+		    while (y-or-n-p "Add another author?"))))
 
 ;;; TODO: Selection with transient
 (defun diogenes--select-authors-and-works (options &optional author-regex)

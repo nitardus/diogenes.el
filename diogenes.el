@@ -6,8 +6,8 @@
 ;; Author: Michael Neidhart <mayhoth@gmail.com>
 ;; Keywords: classics, tools, philology, humanities
 ;;
-;; Version: 0.51
-;; Package-Requires: (cl-lib thingatpt)
+;; Version: 0.55
+;; Package-Requires: (cl-lib thingatpt seq transient)
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,6 +25,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;; Agenda:
+;; -  Coptic!
 ;;   - select_authors:
 ;;     - author_nums => { auth => [wk1, wk2] }
 ;;     - criteria => 'all' || 'any'
@@ -36,15 +37,15 @@
 ;;       - location
 ;;     - interface with transient
 ;; - Indexed (...)
-;; - Browser Mode: Try to read reference at point
+;; - Browser Mode:
 ;;     - Readonly mode, view-mode key bindings
 ;;     - Make keybindings work in Evil Mode
 ;; - Info Manual
 
 ;;; Code:
-;; (require 'transient)
 (require 'cl-lib)
 (require 'thingatpt)
+(require 'transient)
 (require 'seq)
 
 (require 'diogenes-lisp-utils)
@@ -55,7 +56,6 @@
 (require 'diogenes-search)
 (require 'diogenes-perseus)
 (require 'diogenes-legacy)
-
 
 (defgroup diogenes nil
   "Interface to P. Heslin's Diogenes."
@@ -136,7 +136,26 @@ Please set it to the root directory of your Diogenes installation!")))
       '("greek-analyses.txt" "greek-lemmata.txt"
 	"latin-analyses.txt" "latin-lemmata.txt"))
 
-
+(defconst diogenes--corpora
+  '(("phi" . "PHI Latin Corpus")
+    ("tlg" . "TLG Texts")
+    ("ddp" . "Duke Documentary Papyri")
+    ("ins" . "Classical Inscriptions")
+    ("chr" . "Christian Inscriptions")
+    ("misc" . "Miscellaneous PHI Texts")
+    ("cop" . "PHI Coptic Texts")
+    ("bib" . "TLG Bibliography"))
+  "Alist of the corpora that are supported by Diogenes.
+The form is (ABBREV . FULL-NAME")
+
+(defconst diogenes--corpora-abbrevs
+  (mapcar #'car diogenes--corpora)
+  "The abbreviations of the corpora supported by Diogenes.")
+
+(defconst diogenes--corpora-names
+  (mapcar #'cdr diogenes--corpora)
+  "The names of the corpora supported by Diogenes.")
+
 ;;; SEARCH
 ;;;###autoload
 (defun diogenes-search-tlg (options-or-pattern
@@ -157,7 +176,7 @@ Uses the Diogenes Perl Module."
 ;;;###autoload
 (defun diogenes-search-ddp (options-or-pattern
 			    &optional author-plist prefix)
-  "Search for a phrase in the Duke Documentary Database.
+  "Search for a phrase in the Duke Documentary Papyri.
 Uses the Diogenes Perl module."
   (interactive "i\ni\np")
   (diogenes--search-database "ddp" options-or-pattern author-plist prefix))
@@ -319,7 +338,7 @@ Accepts both Unicode and Beta Code as input."
 ;;; MORPHEUS PARSING
 ;;;###autoload
 (defun diogenes-parse-and-lookup-greek (word)
-  "Try to parse a greek word."
+  "Try to parse a greek word and look it up."
   (interactive (list (read-from-minibuffer "Parse greek word: "
 					   (thing-at-point 'word t))))
   (diogenes--parse-and-lookup (diogenes--greek-ensure-beta word)
@@ -327,7 +346,7 @@ Accepts both Unicode and Beta Code as input."
 
 ;;;###autoload
 (defun diogenes-parse-and-lookup-latin (word)
-  "Try to parse a latin word."
+  "Try to parse a latin word and look it up."
   (interactive (list (read-from-minibuffer "Parse greek word: "
 					   (thing-at-point 'word t))))
   (diogenes--parse-and-lookup word "latin"))
@@ -435,7 +454,57 @@ otherwise, prompt the user for input."
     (message "Ol. %d/%d" (/ year 4)
 	     (1+ (mod year 4)))))
 
+
+;;; DISPATCHER
+(transient-define-prefix diogenes-morphology-greek ()
+  "Dispatcher for the Diogenes' Greek morphology tool collection."
+  ["Greek Morphology Tools"
+   ("a" "Show all possible analyses matching query" diogenes-parse-greek)
+   ("f" "Show all attested forms of lemma" diogenes-show-all-forms-greek)
+   ("l" "Show all lemmata and their forms matching query"
+    diogenes-show-all-lemmata-greek)])
 
+(transient-define-prefix diogenes-morphology-latin ()
+  "Dispatcher for the Diogenes' Latin morphology tool collection."
+  ["Latin Morphology Tools"
+   ("a" "Show all possible analyses matching query" diogenes-parse-latin)
+   ("f" "Show all attested forms of lemma" diogenes-show-all-forms-latin)
+   ("l" "Show all lemmata and their forms matching query"
+    diogenes-show-all-lemmata-latin)])
+
+;;;###autoload (autoload 'diogenes "diogenes" nil t)
+(transient-define-prefix diogenes ()
+  "Study Greek and Latin Texts with Peter Heslin's Diogenes.
+This is the main dispatcher function that starts the transient
+user interface."
+  [["SEARCH"
+    ("sg" "Search the Greek TLG" diogenes-search-tlg)
+    ("sl" "Search the Latin PHI" diogenes-search-phi)
+    ("sd" "Search the Duke Documentary Papyri" diogenes-search-ddp)
+    ("si" "Search the Classical Inscriptions" diogenes-search-ins)
+    ("sc" "Search the Christian Inscriptions" diogenes-search-chr)
+    ("sm" "Search the Miscellaneous PHI Texts" diogenes-search-misc)]
+   ["BROWSE"
+    ("bg" "Browse the Greek TLG" diogenes-browse-tlg)
+    ("bl" "Browse the Latin PHI" diogenes-browse-phi)
+    ("bd" "Browse the Duke Documentary Papyri" diogenes-browse-ddp)
+    ("bi" "Browse the Classical Inscriptions" diogenes-browse-ins)
+    ("bc" "Browse the Christian Inscriptions" diogenes-browse-chr)
+    ("bm" "Browse the Miscellaneous PHI Texts" diogenes-browse-misc)]]
+  [["MORPHOLOGY & DICTIONARY LOOKUP"
+    ("lg" "Look up Greek word (LSJ)" diogenes-lookup-greek)
+    ("ll" "Look up Latin word (Lewis & Short)" diogenes-lookup-latin)
+    ("pg" "Try to parse and look up a Greek" diogenes-parse-and-lookup-greek)
+    ("pl" "Try to parse and look up a Latin" diogenes-parse-and-lookup-latin)
+    ("mg" "Greek morphology tools" diogenes-morphology-greek)
+    ("ml" "Latin morphology tools" diogenes-morphology-latin)]
+   ["DUMP AN ENTIRE WORK AS PLAIN TEXT"
+    ("dg" "Dump from the Greek TLG" diogenes-dump-tlg)
+    ("dl" "Dump from the Latin PHI" diogenes-dump-phi)
+    ("dd" "Dump from the Duke Documentary Papyri" diogenes-dump-ddp)
+    ("di" "Dump from the Classical Inscriptions" diogenes-dump-ins)
+    ("dc" "Dump from the Christian Inscriptions" diogenes-dump-chr)
+    ("dm" "Dump from the Miscellaneous PHI Texts" diogenes-dump-misc)]])
 
 (provide 'diogenes)
 
