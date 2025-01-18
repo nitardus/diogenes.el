@@ -478,12 +478,30 @@ otherwise, prompt the user for input."
 This is the main dispatcher function that starts the transient
 user interface."
   [["SEARCH"
-    ("sg" "Search the Greek TLG" diogenes-search-tlg)
-    ("sl" "Search the Latin PHI" diogenes-search-phi)
-    ("sd" "Search the Duke Documentary Papyri" diogenes-search-ddp)
-    ("si" "Search the Classical Inscriptions" diogenes-search-ins)
-    ("sc" "Search the Christian Inscriptions" diogenes-search-chr)
-    ("sm" "Search the Miscellaneous PHI Texts" diogenes-search-misc)]
+    ("sg" "Search the Greek TLG"
+     (lambda () (interactive) (transient-setup 'diogenes--search--select-mode nil nil
+					  :scope (list :type "tlg")))
+     :transient transient--do-recurse)
+    ("sl" "Search the Latin PHI"
+     (lambda () (interactive) (transient-setup 'diogenes--search--select-mode nil nil
+					  :scope (list :type "phi")))
+     :transient transient--do-recurse)
+    ("sd" "Search the Duke Documentary Papyri"
+     (lambda () (interactive) (transient-setup 'diogenes--search--select-mode nil nil
+					  :scope (list :type "ddp")))
+     :transient transient--do-recurse)
+    ("si" "Search the Classical Inscriptions"
+     (lambda () (interactive) (transient-setup 'diogenes--search--select-mode nil nil
+					  :scope (list :type "ins")))
+     :transient transient--do-recurse)
+    ("sc" "Search the Christian Inscriptions"
+     (lambda () (interactive) (transient-setup 'diogenes--search--select-mode nil nil
+					  :scope (list :type "chr")))
+     :transient transient--do-recurse)
+    ("sm" "Search the Miscellaneous PHI Texts"
+     (lambda () (interactive) (transient-setup 'diogenes--search--select-mode nil nil
+					  :scope (list :type "misc")))
+     :transient transient--do-recurse)]
    ["BROWSE"
     ("bg" "Browse the Greek TLG" diogenes-browse-tlg)
     ("bl" "Browse the Latin PHI" diogenes-browse-phi)
@@ -504,7 +522,9 @@ user interface."
     ("dd" "Dump from the Duke Documentary Papyri" diogenes-dump-ddp)
     ("di" "Dump from the Classical Inscriptions" diogenes-dump-ins)
     ("dc" "Dump from the Christian Inscriptions" diogenes-dump-chr)
-    ("dm" "Dump from the Miscellaneous PHI Texts" diogenes-dump-misc)]])
+    ("dm" "Dump from the Miscellaneous PHI Texts" diogenes-dump-misc)]]
+  ["CUSTOM CORPORA"
+   ("c" "Manage custom search corpora" diogenes-manage-user-corpora)])
 
 (provide 'diogenes)
 

@@ -185,8 +185,11 @@ Mode should be a maior mode derived from comint-mode."
     (let ((key (list script options1 options2)))
       (or (gethash key cache)
 	  (setf (gethash key cache)
-		(diogenes--read-info (apply script
-					    (list options1 options2))))))))
+		(prog2
+		  (message "Retrieving information from Diogenes...")
+		  (diogenes--read-info (apply script
+					      (list options1 options2)))
+		  (message "")))))))
 
 (defun diogenes--get-author-list (options &optional author-regex)
   (diogenes--get-info #'diogenes--list-authors-script
@@ -328,8 +331,8 @@ corpora are saved."
    "print '\"', Diogenes::Base->new()->{filter_file}, '\"';"))
 
 (defun diogenes--get-wordlist-matches-script (option-plist pattern)
-  "Return a perl script that returns a list of all word that match
-PATTERN in a wordlist."
+  "Return a perl script that returns a alist of all word that match
+PATTERN in a wordlist and the frequency of their occurrence in the corpus."
   (diogenes--perl-script
    "use Diogenes::Search;"
    "use Diogenes::Indexed;"
@@ -341,7 +344,8 @@ PATTERN in a wordlist."
    "$pat =~ s/[^ A-Z]//g;"
    "$q->{input_raw} = 1;"
    "my ($ref, @wlist) = $q->read_index($pat);"
-   "print perl_to_lisp( \\@wlist );"))
+   "my @results = map { [$_, $ref->{$_}] } @wlist;"
+   "print perl_to_lisp( \\@results );"))
 
 (defun diogenes--browser-script (option-plist passage)
   "Return a perl script that opens a work with the Diogenes Browser."

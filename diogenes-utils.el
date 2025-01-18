@@ -108,7 +108,8 @@
     ("r".?ρ)("s".?σ)("t".?τ)("u".?υ)("f".?φ)("x".?χ)("y".?ψ)("w".?ω)
     ("s".?ς)
     ;; interpunction
-					;("'".?᾿)
+    ;; ("!".?.)
+    ;; ("'".?᾿)
     )
   "Mapping of greek beta code to utf-8 greek.")
 

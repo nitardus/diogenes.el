@@ -123,6 +123,7 @@ When supplied, the keyword arguments add additional strings with a special meani
 - :all-string adds all values and toggles the other input mode (add <-> remove)
 - :regexp-string causes the next input to be read in as a regexp
 - :remove-string switches input mode to `remove'"
+  (setq list (copy-list list))
   (setq remove-prompt (or remove-prompt prompt))
   (let ((max-mini-window-height 0.8))
     (cl-loop
@@ -184,6 +185,19 @@ When supplied, the keyword arguments add additional strings with a special meani
   (interactive)
   (let ((inhibit-read-only t))
     (undo)))
+
+(defun diogenes--quit ()
+  (interactive) (kill-buffer))
+
+(defun diogenes--ask-and-quit ()
+  (interactive)
+  (when (y-or-n-p "Discard edits and quit?")
+    (kill-buffer)))
+
+;;; Transient scope accessors
+(defsubst diogenes--tr--type () (plist-get (transient-scope) :type))
+(defsubst diogenes--tr--callback () (plist-get (transient-scope) :callback))
+(defsubst diogenes--tr--no-ask () (plist-get (transient-scope) :no-ask))
 
 (provide 'diogenes-lisp-utils)
 

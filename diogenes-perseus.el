@@ -350,6 +350,9 @@ diogenes--dict-xml-handlers-extra variable."
       (insert (propertize (diogenes--fontify-nxml xml)
 			  'invalid-xml id
 			  'inhibit-read-only t
+			  'keymap (let ((map (make-sparse-keymap)))
+				    (keymap-set map "q" #'self-insert-command)
+				    map)
 			  'begin start
 			  'end end))
       (setq diogenes--lookup-buffer buffer
@@ -583,9 +586,10 @@ Returns a list that diogenes--browse-work can be applied to."
     (keymap-set map "<remap> <next-line>"           #'diogenes-lookup-forward-line)
     (keymap-set map "<remap> <beginning-of-buffer>" #'diogenes-lookup-beginning-of-buffer)
     (keymap-set map "<remap> <end-of-buffer>"       #'diogenes-lookup-end-of-buffer)
-    (keymap-set map "C-c C-n"  #'diogenes-lookup-next)
-    (keymap-set map "C-c C-p"  #'diogenes-lookup-previous)
-    (keymap-set map "C-c C-c"  #'diogenes-perseus-action)
+    (keymap-set map "C-c C-n"                       #'diogenes-lookup-next)
+    (keymap-set map "C-c C-p"                       #'diogenes-lookup-previous)
+    (keymap-set map "C-c C-c"                       #'diogenes-perseus-action)
+    (keymap-set map "q"                             #'diogenes--quit)
     map)
   "Basic mode map for the Diogenes Lookup Mode.")
 

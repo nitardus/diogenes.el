@@ -38,19 +38,19 @@ Or, with use-package (with some handy key-bindings)
     (use-package diogenes
       :init
       (diogenes-path "/path/to/diogenes")
-      :bind 
-      (("C-c d g b" . diogenes-browse-tlg)
-       ("C-c d g d" . diogenes-dump-tlg)
-       ("C-c d g s" . diogenes-search-tlg)
-       ("C-c d g l" . diogenes-lookup-greek)
-       ("C-c d g p" . diogenes-parse-and-lookup-greek)
-       ("C-c d g P" . diogenes-parse-greek)
-       ("C-c d l b" . diogenes-browse-phi)
-       ("C-c d l d" . diogenes-dump-phi)
-       ("C-c d l s" . diogenes-search-phi)
-       ("C-c d l l" . diogenes-lookup-latin)	 
-       ("C-c d l p" . diogenes-parse-and-lookup-latin)
-       ("C-c d l P" . diogenes-parse-latin)))
+        :bind (("C-c d" . diogenes))
+        :commands (diogenes-ad-to-ol
+                   diogenes-ol-to-ad
+                   diogenes-utf8-to-beta
+                   diogenes-beta-to-utf8))
+
+
+# Transient interface
+
+Nearly all of the functionality of this package (besides the utility
+functions, see below) is exposed via its new transient user interface,
+which can be invoced with the `diogenes` command. Note that this new
+interface is still experimental, so expect some rough edges.
 
 
 # Usage
@@ -204,7 +204,7 @@ Code. Please inform me if you spot something that only works with Beta
 Code!)
 
 
-## Utilitiles
+## Utilities
 
 At the moment, the package provides two utilites.
 `diogenes-beta-to-utf8` and `diogenes-utf8-to-beta` can be used to convert
