@@ -19,6 +19,14 @@ scripts to communicate with Diogenes' Perl API and tries to cover it
 entirely.
 
 
+# Prerequisites
+
+This package has been developed on Linux and GNU Emacs 29. It works on
+Mac OS,too, but I have not yet had the time to make it work on
+Windows, too (but it works fine using WSL2). It should run on earlier
+Emacsen, too, but I haven't tested it yet.
+
+
 # Installation
 
 Please make sure that you have a working installation of Diogenes.
@@ -40,9 +48,9 @@ Or, with use-package (with some handy key-bindings)
       (diogenes-path "/path/to/diogenes")
         :bind (("C-c d" . diogenes))
         :commands (diogenes-ad-to-ol
-                   diogenes-ol-to-ad
-                   diogenes-utf8-to-beta
-                   diogenes-beta-to-utf8))
+                 diogenes-ol-to-ad
+                 diogenes-utf8-to-beta
+                 diogenes-beta-to-utf8))
 
 
 # Transient interface
@@ -75,36 +83,43 @@ each of the following corpora:
 <th scope="col" class="org-left">Full Name</th>
 </tr>
 </thead>
+
 <tbody>
 <tr>
 <td class="org-left">tlg</td>
 <td class="org-left">Thesaurus Lingae Graecae</td>
 </tr>
 
+
 <tr>
 <td class="org-left">phi</td>
 <td class="org-left">PHI Latin Texts</td>
 </tr>
+
 
 <tr>
 <td class="org-left">ddp</td>
 <td class="org-left">Duke Documentary Papyri</td>
 </tr>
 
+
 <tr>
 <td class="org-left">ins</td>
 <td class="org-left">Classical Inscriptions</td>
 </tr>
+
 
 <tr>
 <td class="org-left">chr</td>
 <td class="org-left">Christian Inscriptions</td>
 </tr>
 
+
 <tr>
 <td class="org-left">misc</td>
 <td class="org-left">Miscellaneous PHI Texts</td>
 </tr>
+
 
 <tr>
 <td class="org-left">cop</td>

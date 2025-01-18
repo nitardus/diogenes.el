@@ -22,6 +22,12 @@ Unlike the previous version of this package, it now uses custom Perl
 scripts to communicate with Diogenes' Perl API and tries to cover it
 entirely.
 
+* Prerequisites
+This package has been developed on Linux and GNU Emacs 29. It works on
+Mac OS,too, but I have not yet had the time to make it work on
+Windows, too (but it works fine using WSL2). It should run on earlier
+Emacsen, too, but I haven't tested it yet.
+
 * Installation
 
 Please make sure that you have a working installation of Diogenes.

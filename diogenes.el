@@ -6,7 +6,7 @@
 ;; Author: Michael Neidhart <mayhoth@gmail.com>
 ;; Keywords: classics, tools, philology, humanities
 ;;
-;; Version: 0.55
+;; Version: 0.6
 ;; Package-Requires: (cl-lib thingatpt seq transient)
 
 ;; This file is not part of GNU Emacs.
@@ -25,20 +25,10 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;; Agenda:
-;; -  Coptic!
+;; -  Windows?
+;; -  Coptic?
 ;;   - select_authors:
-;;     - author_nums => { auth => [wk1, wk2] }
-;;     - criteria => 'all' || 'any'
-;;     - get_tlg_categories => 1 (hash keys => [val1, val2,..])
-;;     - only TLG:
-;;       - date(start, end, varia, incerta). Mögliche Werte : date ()
-;;       - genre, genre_clx, epithet
-;;       - gender ('Femina ')
-;;       - location
-;;     - interface with transient
-;; - Indexed (...)
 ;; - Browser Mode:
-;;     - Readonly mode, view-mode key bindings
 ;;     - Make keybindings work in Evil Mode
 ;; - Info Manual
 
