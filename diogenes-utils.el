@@ -169,6 +169,41 @@ breve signs."
       (if greek (diogenes--utf8-to-beta str)
 	str))))
 
+;;; Iota subscript and adscript
+(defconst diogenes--iota-adscript-map
+  '((?ᾇ . "ἇι") (?ᾗ . "ἧι") (?ᾧ . "ὧι")
+    (?ᾆ . "ἆι") (?ᾖ . "ἦι") (?ᾦ . "ὦι")
+    (?ᾷ . "ᾶι") (?ῇ . "ῆι") (?ῷ . "ῶι")
+    (?ᾅ . "ἅι") (?ᾕ . "ἥι") (?ᾥ . "ὥι")
+    (?ᾄ . "ἄι") (?ᾔ . "ἤι") (?ᾤ . "ὤι")
+    (?ᾴ . "άι") (?ῄ . "ήι") (?ῴ . "ώι")
+    (?ᾃ . "ἃι") (?ᾓ . "ἣι") (?ᾣ . "ὣι")
+    (?ᾂ . "ἂι") (?ᾒ . "ἢι") (?ᾢ . "ὢι")
+    (?ᾲ . "ὰι") (?ῂ . "ὴι") (?ῲ . "ὼι")
+    (?ᾁ . "ἁι") (?ᾑ . "ἡι") (?ᾡ . "ὡι")
+    (?ᾀ . "ἀι") (?ᾐ . "ἠι") (?ᾠ . "ὠι")
+    (?ᾳ . "αι") (?ῃ . "ηι") (?ῳ . "ωι")))
+
+(defconst diogenes--iota-adscript-table
+  (make-translation-table-from-alist
+   (mapcar (lambda (cons)
+	     (cons (car cons)
+		   (string-to-vector (cdr cons))))
+	   diogenes--iota-adscript-map)))
+
+;;;###autoload
+(defun diogenes-iota-subscript-to-adscript (begin end)
+  "Convert all subscript iota into adscript ones in the current
+buffer, or in the active region."
+  (interactive "r")
+  (unless (region-active-p)
+    (setq begin (point-min)
+	  end (point-max)))
+  (translate-region begin end
+		    diogenes--iota-adscript-table))
+
+
+;;; Other utilities
 (defun diogenes--beta-normalize-gravis (str)
   (replace-regexp-in-string "\\\\" "/" str))
 

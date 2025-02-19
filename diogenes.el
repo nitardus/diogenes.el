@@ -6,7 +6,7 @@
 ;; Author: Michael Neidhart <mayhoth@gmail.com>
 ;; Keywords: classics, tools, philology, humanities
 ;;
-;; Version: 0.6
+;; Version: 0.61
 ;; Package-Requires: (cl-lib thingatpt seq transient)
 
 ;; This file is not part of GNU Emacs.
